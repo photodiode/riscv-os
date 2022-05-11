@@ -1,0 +1,9 @@
+
+ref
+testing
+tools
+
+bin/*
+.tmp/*
+
+qemu.log
