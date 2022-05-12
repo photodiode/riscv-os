@@ -5,6 +5,8 @@
 #include "uart.h"
 #include "print.h"
 
+#include "memory.h"
+
 
 void kernel();
 void kernel_trap_vector();
@@ -57,6 +59,11 @@ void setup() {
 	    x |=  MSTATUS_MPP_S;
 	    x |=  MSTATUS_SIE;
 	csrw(mstatus, x);
+	// ----
+
+	// put the hart's kernel trap frame into sscratch for switching
+	u64 hart_frame = K_STACK_START + ((K_STACK_SIZE + K_FRAME_SIZE) * HART_ID);
+	csrw(sscratch, hart_frame);
 	// ----
 
 	// set Machine Exception Program Counter to kernel() and "return" into it

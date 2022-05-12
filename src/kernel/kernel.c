@@ -28,7 +28,7 @@ static void mmu_map_kernel() {
 	mmu_map(kernel_pagetable, UART0, UART0, 0x100,    MMU_PTE_READ_WRITE);
 	mmu_map(kernel_pagetable, PLIC,  PLIC,  0x400000, MMU_PTE_READ_WRITE);
 
-	mmu_map(kernel_pagetable, 0x2004000, 0x2004000,  0x8000, MMU_PTE_READ_WRITE); // timer interrupts
+	mmu_map(kernel_pagetable, (u64)MTIMECMP, (u64)MTIMECMP, 0x8000, MMU_PTE_READ_WRITE); // timer interrupts
 }
 
 
@@ -65,8 +65,6 @@ void kernel() {
 		plic_hart_init(HART_ID);
 
 		tasks_init();
-
-		asm("ecall");
 
 		printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
 

@@ -4,6 +4,9 @@
 
 #include "uart.h"
 #include "print.h"
+
+#include "memory.h"
+
 #include "plic.h"
 
 
@@ -13,27 +16,26 @@ typedef struct {
 } trap_cause;
 
 
-typedef struct {
-	u64 x[32]; // general purpose registers
-	//u64 f[32]; // floating point registers
-} trap_frame;
-
-
 u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, trap_frame* frame) {
 
 	(void)frame;
+	(void)value;
 
 	if (cause.interrupt) { // interrupt
 		switch (cause.code) {
 			case  0: printf("User software\n"); break;
-			case  1: printf("Supervisor software\n"); break;
+			case  1: {
+				printf("Supervisor software\n");
+				csrw(sip, csrr(sip) & ~INT_SSI);
+				break;
+			}
 			case  3: printf("Machine software\n"); break;
 
 			case  4: printf("User timer\n"); break;
 			case  5: {
 				printf("Supervisor timer (%d)\n", HART_ID);
 				csrw(sie, csrr(sie) & ~INT_STI);
-				MTIMECMP[HART_ID] = MTIME + 10000000UL;
+				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt
 				break;
 			}
 			case  7: printf("Machine timer (%d)\n", HART_ID); break;
@@ -64,29 +66,31 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 		}
 	} else { // instruction error
 		switch (cause.code) {
-			case  0: printf("Instruction address misaligned"); break;
-			case  1: printf("Instruction access fault"); break;
-			case  2: printf("Illegal instruction"); break;
+			case  0: printf("Instruction address misaligned\n"); break;
+			case  1: printf("Instruction access fault\n"); break;
+			case  2: printf("Illegal instruction\n"); break;
 
-			case  3: printf("Breakpoint"); break;
+			case  3: printf("Breakpoint\n"); break;
 
-			case  4: printf("Load address misaligned"); break;
-			case  5: printf("Load access fault"); break;
+			case  4: printf("Load address misaligned\n"); break;
+			case  5: printf("Load access fault\n"); break;
 
-			case  6:  printf("Store address misaligned"); break;
-			case  7:  printf("Store access fault"); break;
+			case  6:  printf("Store address misaligned\n"); break;
+			case  7:  printf("Store access fault\n"); break;
 
-			case  8: printf("Environment call from User mode"); break;
-			case  9: printf("Environment call from Supervisor mode"); break;
-			case 11: printf("Environment call from Machine mode"); break;
+			case  8: printf("Environment call from User mode\n"); break;
+			case  9: {
+				printf("Environment call from Supervisor mode: a0 = %d\n", frame->x[9]);
+				break;
+			}
+			case 11: printf("Environment call from Machine mode\n"); break;
 
-			case 12: printf("Instruction page fault "); break;
-			case 13: printf("Load page fault"); break;
-			case 15: printf("Store page fault"); break;
+			case 12: printf("Instruction page fault\n"); break;
+			case 13: printf("Load page fault\n"); break;
+			case 15: printf("Store page fault\n"); break;
 
 			default: break;
 		}
-		printf(" (%x)\n", value); 
 		epc += 4;
 	}
 

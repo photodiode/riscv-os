@@ -194,7 +194,7 @@ void _free(void** ptr) {
 void memory_init(const u64 cpu_count) {
 
 	// set up heap
-	const u64 k_stack_end = K_STACK_START + (K_STACK_SIZE * cpu_count);
+	const u64 k_stack_end = K_STACK_START + ((K_STACK_SIZE + K_FRAME_SIZE) * cpu_count);
 
 	heap      = (void*)k_stack_end;
 	heap_size = MEMORY_END - k_stack_end;

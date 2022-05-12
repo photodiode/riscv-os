@@ -3,7 +3,7 @@
 
 .align 4
 kernel_trap_vector:
-	// make room to save registers.
+	// make room to save registers
 	addi sp, sp, -256
 
 	// save the registers.
@@ -42,7 +42,7 @@ kernel_trap_vector:
 	csrr a0, scause
 	csrr a1, stval
 	csrr a2, sepc
-	mv   a3, sp
+	mv   a3, sp // trap frame
 
 	// call the C trap handler in trap.c
 	call kernel_trap
@@ -84,5 +84,4 @@ kernel_trap_vector:
 
 	addi sp, sp, 256
 
-	// return to whatever we were doing in the kernel.
 	sret

@@ -69,8 +69,6 @@ static inline void sfence_vma() {
 #define INT_UEI (1UL <<  8) // user external
 #define INT_SEI (1UL <<  9) // supervisor external
 #define INT_MEI (1UL << 11) // machine external
-
-#define INT_ALL (INT_USI | INT_SSI | INT_MSI | INT_UTI | INT_STI | INT_MTI | INT_UEI | INT_SEI | INT_MEI)
 // ----
 
 

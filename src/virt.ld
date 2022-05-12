@@ -39,9 +39,9 @@ SECTIONS {
 	}
 
 	. = ALIGN(0x1000);
-	PROVIDE(_stack_start = .);
-	PROVIDE(_stack_size  = 0x1000);
+	PROVIDE(_k_stack_start = .);
+	PROVIDE(_k_stack_size  = 0x1000);
+	PROVIDE(_k_frame_size  = 0x1000);
 
 	PROVIDE(_memory_end = _memory_start + 256M);
 }
-
