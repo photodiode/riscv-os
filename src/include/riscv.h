@@ -11,11 +11,21 @@
 #define csrw(reg, x) asm("csrw "#reg", %0" : : "r" (x));
 
 
+#define MTIME   *((volatile u64*)0x0200bff8)
+#define MTIMECMP ((volatile u64*)0x02004000)
+
+
 // Machine Status Register
 #define MSTATUS_MPP_MASK (3UL << 11) // machine previous mode
 #define MSTATUS_MPP_M    (3UL << 11)
 #define MSTATUS_MPP_S    (1UL << 11)
 #define MSTATUS_MPP_U    (0UL << 11)
+
+#define MSTATUS_SIE (1UL << 1)
+#define MSTATUS_MIE (1UL << 3)
+
+#define MSTATUS_SPIE (1UL << 5)
+#define MSTATUS_MPIE (1UL << 7)
 
 #define MSTATUS_MPIE_MASK (1UL << 7)
 // ----
@@ -47,11 +57,20 @@ static inline void sfence_vma() {
 // ----
 
 
+// interrupt bits mie/sie/uie, mip/sip/uip, medeleg and mideleg
+#define INT_USI (1UL <<  0) // user software
+#define INT_SSI (1UL <<  1) // supervisor software
+#define INT_MSI (1UL <<  3) // machine software
 
-// Supervisor Interrupt Enable
-#define SIE_SEIE (1UL << 9) // external
-#define SIE_STIE (1UL << 5) // timer
-#define SIE_SSIE (1UL << 1) // software
+#define INT_UTI (1UL <<  4) // user timer
+#define INT_STI (1UL <<  5) // supervisor timer
+#define INT_MTI (1UL <<  7) // machine timer
+
+#define INT_UEI (1UL <<  8) // user external
+#define INT_SEI (1UL <<  9) // supervisor external
+#define INT_MEI (1UL << 11) // machine external
+
+#define INT_ALL (INT_USI | INT_SSI | INT_MSI | INT_UTI | INT_STI | INT_MTI | INT_UEI | INT_SEI | INT_MEI)
 // ----
 
 
@@ -63,7 +82,7 @@ static inline u64 get_tp() {
 	return x;
 }
 
-#define CPU_ID get_tp()
+#define HART_ID get_tp()
 
 static inline void set_tp(u64 x) {
 	asm("mv tp, %0" : : "r" (x));

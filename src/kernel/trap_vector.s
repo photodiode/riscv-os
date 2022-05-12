@@ -42,8 +42,7 @@ kernel_trap_vector:
 	csrr a0, scause
 	csrr a1, stval
 	csrr a2, sepc
-	mv   a3, tp
-	mv   a4, sp
+	mv   a3, sp
 
 	// call the C trap handler in trap.c
 	call kernel_trap

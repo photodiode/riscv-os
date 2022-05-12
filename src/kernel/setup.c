@@ -8,6 +8,7 @@
 
 void kernel();
 void kernel_trap_vector();
+void mtimer_vector();
 
 
 volatile u32 cpu_count = 0;
@@ -39,22 +40,24 @@ void setup() {
 	// ----
 
 	// send all interrupts and exceptions to supervisor mode
-	//csrw(mie, 0xaaa);
-	csrw(medeleg, 0xffff);
 	csrw(mideleg, 0xffff);
-	csrw(sie, csrr(sie) | SIE_SEIE | SIE_STIE | SIE_SSIE);
+	csrw(medeleg, 0xffff);
+	csrw(sie, csrr(sie) | INT_SEI | INT_STI | INT_SSI);
+	csrw(stvec, (u64)kernel_trap_vector); // set trap vector
+	// ----
+
+	// timer
+	csrw(mie, csrr(mie) | INT_MTI);
+	csrw(mtvec, (u64)mtimer_vector);
 	// ----
 
 	// set Machine Previous Privilege mode to Supervisor for mret
 	u64 x  = csrr(mstatus);
 	    x &= ~MSTATUS_MPP_MASK;
 	    x |=  MSTATUS_MPP_S;
-	    x |=  1UL << 1; // SIE to 1
-	//    x |=  1UL << 7; // MPIE to 1
+	    x |=  MSTATUS_SIE;
 	csrw(mstatus, x);
 	// ----
-
-	csrw(stvec, (u64)kernel_trap_vector); // set trap vector
 
 	// set Machine Exception Program Counter to kernel() and "return" into it
 	csrw(mepc, (u64)kernel);

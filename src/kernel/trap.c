@@ -19,7 +19,7 @@ typedef struct {
 } trap_frame;
 
 
-u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, const u64 hart_id, trap_frame* frame) {
+u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, trap_frame* frame) {
 
 	(void)frame;
 
@@ -27,16 +27,21 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 		switch (cause.code) {
 			case  0: printf("User software\n"); break;
 			case  1: printf("Supervisor software\n"); break;
-			case  3: printf("Machine software interrupt\n"); break;
+			case  3: printf("Machine software\n"); break;
 
 			case  4: printf("User timer\n"); break;
-			case  5: printf("Supervisor timer\n"); break;
-			case  7: printf("Machine timer\n"); break;
+			case  5: {
+				printf("Supervisor timer (%d)\n", HART_ID);
+				csrw(sie, csrr(sie) & ~INT_STI);
+				MTIMECMP[HART_ID] = MTIME + 10000000UL;
+				break;
+			}
+			case  7: printf("Machine timer (%d)\n", HART_ID); break;
 
 			case  8: printf("User external\n"); break;
 			case  9: { // Supervisor external
 
-				const u32 claim_id = plic_get_claim(hart_id);
+				const u32 claim_id = plic_get_claim(HART_ID);
 
 				if (claim_id == PLIC_UART0_ID) {
 					char c = uart_read();
@@ -49,16 +54,15 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 					}
 				}
 
-				plic_complete(hart_id, claim_id);
+				plic_complete(HART_ID, claim_id);
 
 				break;
 			}
-			case 11: printf("Machine external interrupt\n"); break;
+			case 11: printf("Machine external\n"); break;
 
 			default: break;
 		}
 	} else { // instruction error
-		printf("Error on CPU %d at address %x: ", hart_id, epc);
 		switch (cause.code) {
 			case  0: printf("Instruction address misaligned"); break;
 			case  1: printf("Instruction access fault"); break;

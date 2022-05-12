@@ -27,6 +27,8 @@ static void mmu_map_kernel() {
 
 	mmu_map(kernel_pagetable, UART0, UART0, 0x100,    MMU_PTE_READ_WRITE);
 	mmu_map(kernel_pagetable, PLIC,  PLIC,  0x400000, MMU_PTE_READ_WRITE);
+
+	mmu_map(kernel_pagetable, 0x2004000, 0x2004000,  0x8000, MMU_PTE_READ_WRITE); // timer interrupts
 }
 
 
@@ -40,11 +42,12 @@ void mmu_enable() {
 extern volatile u32 cpu_count;
 volatile static bool started = false;
 
+
 void kernel() {
 
 	while (!cpu_count); // wait for cpu count to be official
 
-	if (CPU_ID == 0) {
+	if (HART_ID == 0) {
 
 		uart_init();
 
@@ -59,13 +62,15 @@ void kernel() {
 		mmu_enable();
 
 		plic_init();
-		plic_hart_init(CPU_ID);
+		plic_hart_init(HART_ID);
 
 		tasks_init();
 
 		asm("ecall");
 
 		printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
+
+		MTIMECMP[1] = 0; // start timer
 
 		__sync_synchronize(); // memory barrier
 
@@ -77,11 +82,11 @@ void kernel() {
 		__sync_synchronize(); // memory barrier
 
 		mmu_enable();
-		plic_hart_init(CPU_ID);
+		plic_hart_init(HART_ID);
 
 		putchar('#');
 	}
 
-	//scheduler();
+	//schedule_tasks();
 	while (1);
 }
