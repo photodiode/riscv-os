@@ -61,7 +61,7 @@ void setup() {
 	csrw(mstatus, x);
 	// ----
 
-	// put the hart's kernel trap frame into sscratch for switching
+	// put the hart's kernel trap frame address into sscratch
 	u64 hart_frame = K_STACK_START + ((K_STACK_SIZE + K_FRAME_SIZE) * HART_ID);
 	csrw(sscratch, hart_frame);
 	// ----

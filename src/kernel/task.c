@@ -56,13 +56,12 @@ void tasks_init() {
 		.parent = 0,
 		.id     = 0,
 
-		//.pc        = TASK_ENTRY_POINT,
-		.pc        = (u64)program_001,
+		.pc        = TASK_ENTRY_POINT,
 		.stack     = alloc(2),
 		.pagetable = alloc(1)
 	};
 
-	mmu_map(tasks[0].pagetable, (u64)program_001,    TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE);
+	mmu_map(tasks[0].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE);
 	mmu_map(tasks[0].pagetable, (u64)tasks[0].stack, 0x2000, 0x2000, MMU_PTE_READ_WRITE);
 
 	//printf("%x\n", mmu_v2p(tasks[0].pagetable, TASK_ENTRY_POINT));
