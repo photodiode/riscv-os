@@ -29,10 +29,29 @@ typedef struct {
 } task;
 
 
+extern volatile mmu_table kernel_pagetable;
+
+
 void __attribute__((aligned(4096))) program_001() {
-	asm("li a0, 17");
+
+	char* str = (void*)0x1000;
+
+	str[0] = 'H';
+	str[1] = 'e';
+	str[2] = 'l';
+	str[3] = 'l';
+	str[4] = 'o';
+	str[5] = '!';
+	str[6] = '\n';
+
+	asm("li a0, 4");
+	asm("li a1, 0x1000");
 	asm("ecall");
+
+	while (1);
 }
+
+void kernel_trap_user();
 
 
 #define TASK_PAGES 1
@@ -40,11 +59,11 @@ u16   task_count      = 0;
 u16   task_first_free = 0;
 task* tasks           = NULL;
 
-#define TASK_ENTRY_POINT 0x1000
-
+#define TASK_ENTRY_POINT 0x0
 
 
 void tasks_init() {
+
 	tasks = alloc(TASK_PAGES);
 	task_count = (PAGE_SIZE * TASK_PAGES) / sizeof(task);
 
@@ -58,13 +77,35 @@ void tasks_init() {
 
 		.pc        = TASK_ENTRY_POINT,
 		.stack     = alloc(2),
-		.pagetable = alloc(1)
+		.pagetable = alloc(1),
+		.frame     = {0}
 	};
 
-	mmu_map(tasks[0].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE);
-	mmu_map(tasks[0].pagetable, (u64)tasks[0].stack, 0x2000, 0x2000, MMU_PTE_READ_WRITE);
+	tasks[0].frame.satp = MAKE_SATP(tasks[0].pagetable);
 
-	//printf("%x\n", mmu_v2p(tasks[0].pagetable, TASK_ENTRY_POINT));
-	//printf("program_001: %x\n", (u64)program_001);
-	//printf("task.stack:  %p\n", tasks[0].stack);
+	/*mmu_map(tasks[0].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
+	mmu_map(tasks[0].pagetable, (u64)tasks[0].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+
+	csrw(satp, MAKE_SATP(tasks[0].pagetable));
+	sfence_vma();*/
+
+	mmu_map(kernel_pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
+	mmu_map(kernel_pagetable, (u64)tasks[0].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+
+	sfence_vma();
+
+	u64 x  = csrr(sstatus);
+	    x &= ~MSTATUS_SPP;
+	    x |=  MSTATUS_SPIE;
+	csrw(sstatus, x);
+
+	csrw(sscratch, (u64)(&tasks[0].frame));
+
+	asm("li sp, 0x3000");
+
+	csrw(stvec, (u64)kernel_trap_user);
+	csrw(sepc, TASK_ENTRY_POINT);
+	asm("sret");
 }
+
+

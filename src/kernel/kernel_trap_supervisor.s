@@ -1,8 +1,8 @@
 
-.global kernel_trap_vector
+.global kernel_trap_supervisor
 
 .align 4
-kernel_trap_vector:
+kernel_trap_supervisor:
 	// make room to save registers
 	addi sp, sp, -256
 

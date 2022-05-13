@@ -24,10 +24,8 @@ extern const u64 _data_start;
 
 extern const u64 _k_stack_start;
 extern const u64 _k_stack_size;
-extern const u64 _k_frame_size;
 #define K_STACK_START ((const u64)&_k_stack_start)
 #define K_STACK_SIZE  ((const u64)&_k_stack_size)
-#define K_FRAME_SIZE  ((const u64)&_k_frame_size)
 
 extern const u64 _memory_end;
 #define MEMORY_END ((const u64)&_memory_end)
@@ -38,7 +36,8 @@ typedef struct {
 	u64 x[32]; // general purpose registers
 	//u64 f[32]; // floating point registers
 	u64 satp;
-} trap_frame;
+	u64 hart_id;
+} trap_frame; // hart state
 
 
 // kernel page allocator

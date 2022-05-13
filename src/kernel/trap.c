@@ -6,6 +6,7 @@
 #include "print.h"
 
 #include "memory.h"
+#include "mmu.h"
 
 #include "plic.h"
 
@@ -14,6 +15,9 @@ typedef struct {
 	const u64  code : 63;
 	const bool interrupt : 1;
 } trap_cause;
+
+
+extern volatile mmu_table kernel_pagetable;
 
 
 u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, trap_frame* frame) {
@@ -33,7 +37,7 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 
 			case  4: printf("User timer\n"); break;
 			case  5: {
-				printf("Supervisor timer (%d)\n", HART_ID);
+				printf("%d\n", HART_ID);
 				csrw(sie, csrr(sie) & ~INT_STI);
 				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt
 				break;
@@ -78,14 +82,27 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 			case  6:  printf("Store address misaligned\n"); break;
 			case  7:  printf("Store access fault\n"); break;
 
-			case  8: printf("Environment call from User mode\n"); break;
+			case  8: {
+				//printf("Environment call from User mode: a0 = %d\n", frame->x[9]);
+				//printf("%x\n", frame->x[10]);
+				switch (frame->x[9]) {
+					case 4: {
+						char* str = (void*)mmu_v2p(kernel_pagetable, frame->x[10]);
+						puts(str);
+						break;
+					}
+
+					default: break;
+				}
+				break;
+			}
 			case  9: {
 				printf("Environment call from Supervisor mode: a0 = %d\n", frame->x[9]);
 				break;
 			}
 			case 11: printf("Environment call from Machine mode\n"); break;
 
-			case 12: printf("Instruction page fault\n"); break;
+			case 12: printf("Instruction page fault at %x\n", value); break;
 			case 13: printf("Load page fault\n"); break;
 			case 15: printf("Store page fault\n"); break;
 

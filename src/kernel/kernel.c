@@ -13,6 +13,9 @@
 void tasks_init();
 
 
+void kernel_trap_supervisor();
+
+
 // kernel page table mapping
 volatile mmu_table kernel_pagetable;
 
@@ -29,6 +32,7 @@ static void mmu_map_kernel() {
 	mmu_map(kernel_pagetable, PLIC,  PLIC,  0x400000, MMU_PTE_READ_WRITE);
 
 	mmu_map(kernel_pagetable, (u64)MTIMECMP, (u64)MTIMECMP, 0x8000, MMU_PTE_READ_WRITE); // timer interrupts
+
 }
 
 
@@ -64,11 +68,7 @@ void kernel() {
 		plic_init();
 		plic_hart_init(HART_ID);
 
-		tasks_init();
-
 		printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
-
-		MTIMECMP[1] = 0; // start timer
 
 		__sync_synchronize(); // memory barrier
 
@@ -81,9 +81,16 @@ void kernel() {
 
 		mmu_enable();
 		plic_hart_init(HART_ID);
-
-		putchar('#');
 	}
+
+	// enable interrupts
+	csrw(stvec, (u64)kernel_trap_supervisor); // set trap vector
+	csrw(sie, INT_SEI | INT_STI | INT_SSI);
+	// ----
+
+	MTIMECMP[HART_ID] = HART_ID * 10000000UL;
+
+	if (HART_ID == 0) tasks_init();
 
 	//schedule_tasks();
 	while (1);

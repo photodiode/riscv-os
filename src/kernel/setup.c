@@ -9,7 +9,6 @@
 
 
 void kernel();
-void kernel_trap_vector();
 void mtimer_vector();
 
 
@@ -44,9 +43,9 @@ void setup() {
 	// send all interrupts and exceptions to supervisor mode
 	csrw(mideleg, 0xffff);
 	csrw(medeleg, 0xffff);
-	csrw(sie, csrr(sie) | INT_SEI | INT_STI | INT_SSI);
-	csrw(stvec, (u64)kernel_trap_vector); // set trap vector
 	// ----
+
+	csrw(sie, 0); // disable interrupts in supervisor mode
 
 	// timer
 	csrw(mie, csrr(mie) | INT_MTI);
@@ -57,13 +56,7 @@ void setup() {
 	u64 x  = csrr(mstatus);
 	    x &= ~MSTATUS_MPP_MASK;
 	    x |=  MSTATUS_MPP_S;
-	    x |=  MSTATUS_SIE;
 	csrw(mstatus, x);
-	// ----
-
-	// put the hart's kernel trap frame address into sscratch
-	u64 hart_frame = K_STACK_START + ((K_STACK_SIZE + K_FRAME_SIZE) * HART_ID);
-	csrw(sscratch, hart_frame);
 	// ----
 
 	// set Machine Exception Program Counter to kernel() and "return" into it

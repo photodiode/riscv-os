@@ -1,8 +1,10 @@
 
-.global kernel_trap_vector
+.global kernel_trap_user
 
 .align 4
-kernel_trap_vector:
+kernel_trap_user:
+	//csrw sie, zero
+
 	// save the registers
 	csrrw t6, sscratch, t6
 
@@ -53,6 +55,8 @@ kernel_trap_vector:
 	csrr a1, stval
 	csrr a2, sepc
 	csrr a3, sscratch // trap frame
+
+	//csrw sie, 0x222
 
 	// call the C trap handler in trap.c
 	call kernel_trap

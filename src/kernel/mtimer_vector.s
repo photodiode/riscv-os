@@ -14,17 +14,21 @@ mtimer_vector:
 	sd a1, 80(sp)
 
 	// trigger supervisor timer interrupt
-	li a1, (1 << 5)
-        csrw sie, a1
-        csrw mip, a1
-        // ----
+	csrr a1, sie
+	ori  a1, a1, (1 << 5)
+	csrw sie, a1
+
+	csrr a1, mip
+	ori  a1, a1, (1 << 5)
+	csrw mip, a1
+	// ----
 
 	// set mtimecmp[hart_id] to -1
-        li  a0, MTIMECMP
-        li  a1, 8
-        mul a1, a1, tp
-        add a0, a0, a1
-        li  a1, -1
+	li  a0, MTIMECMP
+	li  a1, 8
+	mul a1, a1, tp
+	add a0, a0, a1
+	li  a1, -1
 	sw  a1, 0(a0)
 	// ----
 

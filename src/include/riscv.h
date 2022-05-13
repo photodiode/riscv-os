@@ -21,13 +21,15 @@
 #define MSTATUS_MPP_S    (1UL << 11)
 #define MSTATUS_MPP_U    (0UL << 11)
 
+#define MSTATUS_UIE (1UL << 0)
 #define MSTATUS_SIE (1UL << 1)
 #define MSTATUS_MIE (1UL << 3)
 
+#define MSTATUS_UPIE (1UL << 4)
 #define MSTATUS_SPIE (1UL << 5)
 #define MSTATUS_MPIE (1UL << 7)
 
-#define MSTATUS_MPIE_MASK (1UL << 7)
+#define MSTATUS_SPP (1UL << 8) // supervisor previous mode
 // ----
 
 

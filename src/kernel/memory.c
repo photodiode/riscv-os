@@ -194,7 +194,7 @@ void _free(void** ptr) {
 void memory_init(const u64 cpu_count) {
 
 	// set up heap
-	const u64 k_stack_end = K_STACK_START + ((K_STACK_SIZE + K_FRAME_SIZE) * cpu_count);
+	const u64 k_stack_end = K_STACK_START + (K_STACK_SIZE * cpu_count);
 
 	heap      = (void*)k_stack_end;
 	heap_size = MEMORY_END - k_stack_end;
@@ -216,7 +216,7 @@ void memory_init(const u64 cpu_count) {
 
 	printf("RAM: %d bytes\n", heap_size);
 
-	//printf("stack: %x\n", K_STACK_START);
+	//printf("stack: %x (%d bytes)\n", K_STACK_START, k_stack_end - K_STACK_START);
 	//printf("heap:  %p (%d bytes)\n", heap, heap_size);
 	//printf("pmap:  %d 4KiB page%c\n", page_map_pages, (page_map_pages != 1) ? 's' : '\0');
 }

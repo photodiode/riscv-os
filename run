@@ -1,3 +1,3 @@
 #!/bin/bash
 
-qemu-system-riscv64 -machine virt -cpu rv64 -d guest_errors,unimp -D qemu.log -smp 4 -m 128M -bios none -nographic -kernel bin/kernel
+qemu-system-riscv64 -machine virt -cpu rv64 -d guest_errors,unimp -D qemu.log -smp 1 -m 128M -bios none -nographic -kernel bin/kernel
