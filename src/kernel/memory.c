@@ -5,6 +5,8 @@
 
 #include "memory.h"
 
+#include "mutex.h"
+
 
 static void* heap      = NULL;
 static u64   heap_size = 0;
@@ -12,35 +14,6 @@ static u64   heap_size = 0;
 static u64* page_map[2]  = { NULL };
 static u64  page_map_len = 0;
 #define PAGE_MAP_CHUNK_WIDTH 64 // size of page_map type in bits
-
-
-/*void print_chunk(u64 c) {
-
-	static char characters[]= ".><#";
-
-	static char buffer[65];
-	buffer[64] = '\0';
-
-	for (i64 i = PAGE_MAP_CHUNK_WIDTH-1; i >= 0; i--) {
-		char f = (page_map[0][c] >> i) & 1UL;
-		char l = (page_map[1][c] >> i) & 1UL;
-		buffer[PAGE_MAP_CHUNK_WIDTH - i - 1] = characters[f | (l << 1)];
-	}
-	puts(buffer);
-}
-
-
-void printmap() {
-	print_chunk(0);
-	putchar('\n');
-	print_chunk(1);
-	putchar('\n');
-	print_chunk(2);
-	putchar('\n');
-	print_chunk(3);
-	putchar('\n');
-	putchar('\n');
-}*/
 
 
 static u64 u64_trailing(const u64 i) {
@@ -162,7 +135,15 @@ static void clear_pages(const void* const ptr, const u64 page_count) {
 }
 
 
+// ---- public functions ----
+
+
+mtx memory_lock;
+
+
 void* alloc(const u64 page_count) {
+
+	mtx_lock(&memory_lock);
 
 	const u64 page = find_range(page_count);
 	if (!page) return NULL;
@@ -171,6 +152,8 @@ void* alloc(const u64 page_count) {
 
 	map_range(page, page_count);
 	//clear_pages(ptr, page_count);
+
+	mtx_unlock(&memory_lock);
 
 	return ptr;
 }
@@ -182,9 +165,13 @@ void _free(void** ptr) {
 
 	const u64 page = ((u64)*ptr - (u64)heap) / PAGE_SIZE; // address to page number
 
+	mtx_lock(&memory_lock);
+
 	const u64 page_count = unmap_range(page);
 	(void)page_count;
 	//clear_pages(*ptr, page_count);
+
+	mtx_unlock(&memory_lock);
 
 	*ptr = NULL;
 }

@@ -3,7 +3,6 @@
 
 .align 4
 kernel_trap_user:
-	//csrw sie, zero
 
 	// save the registers
 	csrrw t6, sscratch, t6
@@ -43,20 +42,19 @@ kernel_trap_user:
 	csrr t6, sscratch
 	sd   t6, 240(t5)
 	csrw sscratch, t5
-	mv   sp, t5
 
-	csrr a0, satp
-	sd a0, 256(t5)
-
-	sd tp, 264(t5)
+	sd tp, 280(t5) // store hart id into frame
+	ld sp, 272(t5) // load rame.kernel_sp into sp
 	// ----
+
+	ld t5, 264(t5) // load frame.kernel_satp into t5
+	csrw satp, t5
+	sfence.vma zero, zero
 
 	csrr a0, scause
 	csrr a1, stval
 	csrr a2, sepc
 	csrr a3, sscratch // trap frame
-
-	//csrw sie, 0x222
 
 	// call the C trap handler in trap.c
 	call kernel_trap
@@ -65,6 +63,10 @@ kernel_trap_user:
 
 	// restore registers
 	csrr t6, sscratch
+
+	ld t5, 256(t6)
+	csrw satp, t5
+	sfence.vma zero, zero
 
 	ld ra, 0(t6)
 	ld sp, 8(t6)

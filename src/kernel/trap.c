@@ -20,6 +20,10 @@ typedef struct {
 extern volatile mmu_table kernel_pagetable;
 
 
+void kernel_trap_supervisor();
+void kernel_trap_user();
+
+
 u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, trap_frame* frame) {
 
 	(void)frame;
@@ -87,7 +91,8 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 				//printf("%x\n", frame->x[10]);
 				switch (frame->x[9]) {
 					case 4: {
-						char* str = (void*)mmu_v2p(kernel_pagetable, frame->x[10]);
+						mmu_table pagetable = (void*)(frame->pagetable_address);
+						char* str = (void*)mmu_v2p(pagetable, frame->x[10]);
 						puts(str);
 						break;
 					}
@@ -97,7 +102,7 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 				break;
 			}
 			case  9: {
-				printf("Environment call from Supervisor mode: a0 = %d\n", frame->x[9]);
+				printf("Environment call from Supervisor mode: a1 = %x\n", frame->x[10]);
 				break;
 			}
 			case 11: printf("Environment call from Machine mode\n"); break;

@@ -7,6 +7,8 @@
 #include "memory.h"
 #include "mmu.h"
 
+#include "mutex.h"
+
 
 typedef enum __attribute__((__packed__)) {
 	TS_NONE,
@@ -25,7 +27,7 @@ typedef struct {
 	u8*       stack;
 	mmu_table pagetable;
 
-	trap_frame frame;
+	trap_frame* frame;
 } task;
 
 
@@ -51,8 +53,6 @@ void __attribute__((aligned(4096))) program_001() {
 	while (1);
 }
 
-void kernel_trap_user();
-
 
 #define TASK_PAGES 1
 u16   task_count      = 0;
@@ -70,41 +70,56 @@ void tasks_init() {
 	printf("tasks: %p\n", tasks);
 	printf("task count: %d\n", task_count);
 
-	tasks[0] = (task) {
+}
+
+
+void kernel_trap_user();
+
+
+void task_start(u32 hart_id) {
+
+	tasks[hart_id] = (task) {
 		.state  = TS_RUNNING,
 		.parent = 0,
-		.id     = 0,
+		.id     = hart_id,
 
 		.pc        = TASK_ENTRY_POINT,
 		.stack     = alloc(2),
 		.pagetable = alloc(1),
-		.frame     = {0}
+		.frame     = alloc(1)
 	};
 
-	tasks[0].frame.satp = MAKE_SATP(tasks[0].pagetable);
+	tasks[hart_id].frame->satp = MAKE_SATP(tasks[hart_id].pagetable);
 
-	/*mmu_map(tasks[0].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
-	mmu_map(tasks[0].pagetable, (u64)tasks[0].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+	tasks[hart_id].frame->kernel_satp = MAKE_SATP(kernel_pagetable);
+	tasks[hart_id].frame->kernel_sp = K_STACK_START + (1 * K_STACK_SIZE);
 
-	csrw(satp, MAKE_SATP(tasks[0].pagetable));
-	sfence_vma();*/
+	tasks[hart_id].frame->pagetable_address = (u64)tasks[hart_id].pagetable;
 
-	mmu_map(kernel_pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
-	mmu_map(kernel_pagetable, (u64)tasks[0].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
 
+	mmu_map(tasks[hart_id].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
+	mmu_map(tasks[hart_id].pagetable, (u64)tasks[hart_id].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+
+	mmu_map(tasks[hart_id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x1000, MMU_PTE_READ_EXECUTE);
+	mmu_map(tasks[hart_id].pagetable, (u64)tasks[hart_id].frame, (u64)tasks[hart_id].frame, PAGE_SIZE, MMU_PTE_READ_WRITE);
+
+	mmu_map(tasks[hart_id].pagetable, 0x10000000UL, 0x10000000UL, 0x100, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+
+
+	rv_status status = {.raw = csrr(sstatus)};
+	status.spp  = 0; // set to user mode
+	status.sie  = 0; // turn off interrupts
+	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
+	csrw(sstatus, status.raw);
+
+	csrw(sscratch, (u64)tasks[hart_id].frame);
+	csrw(sepc, TASK_ENTRY_POINT);
+
+	// after this nothing outside the task will work
+	csrw(satp, MAKE_SATP(tasks[hart_id].pagetable));
 	sfence_vma();
 
-	u64 x  = csrr(sstatus);
-	    x &= ~MSTATUS_SPP;
-	    x |=  MSTATUS_SPIE;
-	csrw(sstatus, x);
-
-	csrw(sscratch, (u64)(&tasks[0].frame));
-
-	asm("li sp, 0x3000");
-
-	csrw(stvec, (u64)kernel_trap_user);
-	csrw(sepc, TASK_ENTRY_POINT);
+	asm("li sp, 0x2FFF");
 	asm("sret");
 }
 

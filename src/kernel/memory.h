@@ -36,7 +36,12 @@ typedef struct {
 	u64 x[32]; // general purpose registers
 	//u64 f[32]; // floating point registers
 	u64 satp;
+
+	u64 kernel_satp;
+	u64 kernel_sp;
+
 	u64 hart_id;
+	u64 pagetable_address;
 } trap_frame; // hart state
 
 

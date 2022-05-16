@@ -11,9 +11,10 @@
 #include "plic.h"
 //#include "task.h"
 void tasks_init();
+void task_start(u32 id);
 
 
-void kernel_trap_supervisor();
+void kernel_trap_user();
 
 
 // kernel page table mapping
@@ -47,6 +48,9 @@ extern volatile u32 cpu_count;
 volatile static bool started = false;
 
 
+//void virtio_init();
+
+
 void kernel() {
 
 	while (!cpu_count); // wait for cpu count to be official
@@ -60,6 +64,8 @@ void kernel() {
 
 		printf("CPU: %d cores\n", cpu_count);
 
+		//virtio_init();
+
 		memory_init(cpu_count);
 
 		mmu_map_kernel();
@@ -67,6 +73,8 @@ void kernel() {
 
 		plic_init();
 		plic_hart_init(HART_ID);
+
+		tasks_init();
 
 		printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
 
@@ -84,13 +92,13 @@ void kernel() {
 	}
 
 	// enable interrupts
-	csrw(stvec, (u64)kernel_trap_supervisor); // set trap vector
 	csrw(sie, INT_SEI | INT_STI | INT_SSI);
+	csrw(stvec, (u64)kernel_trap_user);
 	// ----
 
 	MTIMECMP[HART_ID] = HART_ID * 10000000UL;
 
-	if (HART_ID == 0) tasks_init();
+	task_start(HART_ID);
 
 	//schedule_tasks();
 	while (1);

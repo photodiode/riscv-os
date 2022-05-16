@@ -45,18 +45,15 @@ void setup() {
 	csrw(medeleg, 0xffff);
 	// ----
 
-	csrw(sie, 0); // disable interrupts in supervisor mode
-
 	// timer
 	csrw(mie, csrr(mie) | INT_MTI);
 	csrw(mtvec, (u64)mtimer_vector);
 	// ----
 
 	// set Machine Previous Privilege mode to Supervisor for mret
-	u64 x  = csrr(mstatus);
-	    x &= ~MSTATUS_MPP_MASK;
-	    x |=  MSTATUS_MPP_S;
-	csrw(mstatus, x);
+	rv_status status = {.raw = csrr(mstatus)};
+	status.mpp = 1;
+	csrw(mstatus, status.raw);
 	// ----
 
 	// set Machine Exception Program Counter to kernel() and "return" into it
