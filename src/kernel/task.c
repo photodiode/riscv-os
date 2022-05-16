@@ -83,12 +83,12 @@ void task_create() {
 		.frame     = alloc(1)
 	};
 
-	tasks[id].frame->x[1] = 0x2fff; // sp
+	tasks[id].frame->x[1] = 0x3000; // sp
 	tasks[id].frame->pc   = TASK_ENTRY_POINT;
 	tasks[id].frame->satp = MAKE_SATP(tasks[id].pagetable);
 
 	tasks[id].frame->kernel_satp = MAKE_SATP(kernel_pagetable);
-	tasks[id].frame->kernel_sp = K_STACK_START + (1 * K_STACK_SIZE);
+	tasks[id].frame->kernel_sp   = K_STACK_START + (1 * K_STACK_SIZE);
 
 	tasks[id].frame->pagetable_address = (u64)tasks[id].pagetable;
 
@@ -107,9 +107,7 @@ void tasks_init() {
 	tasks = alloc(TASK_PAGES);
 	task_count = (PAGE_SIZE * TASK_PAGES) / sizeof(task);
 
-	printf("tasks: %p\n", tasks);
-	printf("task count: %d\n", task_count);
-
+	task_create();
 	task_create();
 	task_create();
 	task_create();

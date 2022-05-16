@@ -50,7 +50,7 @@ kernel_trap_user:
 	csrr a2, sepc
 	csrr a3, sscratch // trap frame
 
-	ld sp, 272(t5) // load rame.kernel_sp into sp
+	ld sp, 272(t5) // load frame.kernel_sp into sp
 	sd tp, 280(t5) // store hart id into frame
 	sd a2, 296(t5) // store sepc into frame
 
@@ -71,6 +71,8 @@ load_task:
 	ld t5, 256(t6) // load frame.satp
 	csrw satp, t5
 	sfence.vma zero, zero
+
+	sd a0, 296(t6) // store sepc into frame
 
 	ld ra, 0(t6)
 	ld sp, 8(t6)

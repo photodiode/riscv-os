@@ -43,9 +43,9 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 
 			case  4: printf("User timer\n"); break;
 			case  5: {
-				//mtx_lock(&print_lock);
-				//printf("%d: %x\n", HART_ID, frame->pc);
-				//mtx_unlock(&print_lock);
+				mtx_lock(&print_lock);
+				printf("%d ", HART_ID);
+				mtx_unlock(&print_lock);
 
 				csrw(sie, csrr(sie) & ~INT_STI);
 				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt
