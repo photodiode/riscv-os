@@ -65,6 +65,43 @@ task* tasks           = NULL;
 #define TASK_ENTRY_POINT 0x0
 
 
+void kernel_trap_user();
+
+
+void task_create() {
+
+	u16 id = task_first_free;
+	task_first_free += 1;
+
+	tasks[id] = (task) {
+		.state  = TS_RUNNING,
+		.parent = 0,
+		.id     = id,
+
+		.stack     = alloc(2),
+		.pagetable = alloc(1),
+		.frame     = alloc(1)
+	};
+
+	tasks[id].frame->x[1] = 0x2fff; // sp
+	tasks[id].frame->pc   = TASK_ENTRY_POINT;
+	tasks[id].frame->satp = MAKE_SATP(tasks[id].pagetable);
+
+	tasks[id].frame->kernel_satp = MAKE_SATP(kernel_pagetable);
+	tasks[id].frame->kernel_sp = K_STACK_START + (1 * K_STACK_SIZE);
+
+	tasks[id].frame->pagetable_address = (u64)tasks[id].pagetable;
+
+
+	mmu_map(tasks[id].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
+	mmu_map(tasks[id].pagetable, (u64)tasks[id].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+
+	mmu_map(tasks[id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x1000, MMU_PTE_READ_EXECUTE);
+	mmu_map(tasks[id].pagetable, (u64)tasks[id].frame, (u64)tasks[id].frame, PAGE_SIZE, MMU_PTE_READ_WRITE);
+
+}
+
+
 void tasks_init() {
 
 	tasks = alloc(TASK_PAGES);
@@ -73,44 +110,28 @@ void tasks_init() {
 	printf("tasks: %p\n", tasks);
 	printf("task count: %d\n", task_count);
 
+	task_create();
+	task_create();
+	task_create();
+	task_create();
 }
 
 
-void kernel_trap_user();
+void load_task(u64 pc);
 
 
 mtx task_lock;
 
+volatile u16 i = 0;
 
-void task_start(u32 hart_id) {
+void task_start() {
 
 	mtx_lock(&task_lock);
 
-	tasks[hart_id] = (task) {
-		.state  = TS_RUNNING,
-		.parent = 0,
-		.id     = hart_id,
+	u16 id = i;
+	i = (i + 1) % task_first_free;
 
-		.pc        = TASK_ENTRY_POINT,
-		.stack     = alloc(2),
-		.pagetable = alloc(1),
-		.frame     = alloc(1)
-	};
-
-	tasks[hart_id].frame->satp = MAKE_SATP(tasks[hart_id].pagetable);
-
-	tasks[hart_id].frame->kernel_satp = MAKE_SATP(kernel_pagetable);
-	tasks[hart_id].frame->kernel_sp = K_STACK_START + (1 * K_STACK_SIZE);
-
-	tasks[hart_id].frame->pagetable_address = (u64)tasks[hart_id].pagetable;
-
-
-	mmu_map(tasks[hart_id].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
-	mmu_map(tasks[hart_id].pagetable, (u64)tasks[hart_id].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
-
-	mmu_map(tasks[hart_id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x1000, MMU_PTE_READ_EXECUTE);
-	mmu_map(tasks[hart_id].pagetable, (u64)tasks[hart_id].frame, (u64)tasks[hart_id].frame, PAGE_SIZE, MMU_PTE_READ_WRITE);
-
+	mtx_unlock(&task_lock);
 
 	rv_status status = {.raw = csrr(sstatus)};
 	status.spp  = 0; // set to user mode
@@ -118,17 +139,17 @@ void task_start(u32 hart_id) {
 	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
 	csrw(sstatus, status.raw);
 
-	csrw(sscratch, (u64)tasks[hart_id].frame);
-	csrw(sepc, tasks[hart_id].pc);
-
-	mtx_unlock(&task_lock);
+	csrw(sscratch, (u64)tasks[id].frame);
+	//csrw(sepc, tasks[id].frame->pc);
 
 	// after this nothing outside the task will work
-	csrw(satp, MAKE_SATP(tasks[hart_id].pagetable));
+	/*csrw(satp, MAKE_SATP(tasks[id].pagetable));
 	sfence_vma();
 
 	asm("li sp, 0x2FFF");
-	asm("sret");
+	asm("sret");*/
+
+	load_task(tasks[id].frame->pc);
 }
 
 

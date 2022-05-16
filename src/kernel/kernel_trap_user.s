@@ -1,5 +1,6 @@
 
 .global kernel_trap_user
+.global load_task
 
 .align 4
 kernel_trap_user:
@@ -42,29 +43,32 @@ kernel_trap_user:
 	csrr t6, sscratch
 	sd   t6, 240(t5)
 	csrw sscratch, t5
-
-	sd tp, 280(t5) // store hart id into frame
-	ld sp, 272(t5) // load rame.kernel_sp into sp
 	// ----
-
-	ld t5, 264(t5) // load frame.kernel_satp into t5
-	csrw satp, t5
-	sfence.vma zero, zero
 
 	csrr a0, scause
 	csrr a1, stval
 	csrr a2, sepc
 	csrr a3, sscratch // trap frame
 
+	ld sp, 272(t5) // load rame.kernel_sp into sp
+	sd tp, 280(t5) // store hart id into frame
+	sd a2, 296(t5) // store sepc into frame
+
+	ld t5, 264(t5) // load frame.kernel_satp into t5
+	csrw satp, t5
+	sfence.vma zero, zero
+
 	// call the C trap handler in trap.c
 	call kernel_trap
+
+load_task:
 
 	csrw sepc, a0
 
 	// restore registers
 	csrr t6, sscratch
 
-	ld t5, 256(t6)
+	ld t5, 256(t6) // load frame.satp
 	csrw satp, t5
 	sfence.vma zero, zero
 

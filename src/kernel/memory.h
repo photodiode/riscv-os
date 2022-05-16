@@ -42,6 +42,8 @@ typedef struct {
 
 	u64 hart_id;
 	u64 pagetable_address;
+
+	u64 pc;
 } trap_frame; // hart state
 
 

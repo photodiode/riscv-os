@@ -11,7 +11,7 @@
 #include "plic.h"
 //#include "task.h"
 void tasks_init();
-void task_start(u32 id);
+void task_start();
 
 
 void kernel_trap_user();
@@ -96,10 +96,7 @@ void kernel() {
 	csrw(stvec, (u64)kernel_trap_user);
 	// ----
 
-	MTIMECMP[HART_ID] = (HART_ID + 1) * 5000000UL;
+	MTIMECMP[HART_ID] = 10000000UL;
 
-	task_start(HART_ID);
-
-	//schedule_tasks();
-	while (1);
+	task_start();
 }

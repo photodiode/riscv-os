@@ -23,15 +23,13 @@ extern volatile mmu_table kernel_pagetable;
 
 
 void kernel_trap_user();
+void task_start();
 
 
 mtx print_lock;
 
 
 u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, trap_frame* frame) {
-
-	(void)frame;
-	(void)value;
 
 	if (cause.interrupt) { // interrupt
 		switch (cause.code) {
@@ -45,13 +43,14 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 
 			case  4: printf("User timer\n"); break;
 			case  5: {
-				mtx_lock(&print_lock);
+				//mtx_lock(&print_lock);
+				//printf("%d: %x\n", HART_ID, frame->pc);
+				//mtx_unlock(&print_lock);
 
-				printf("%d ", HART_ID);
 				csrw(sie, csrr(sie) & ~INT_STI);
 				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt
 
-				mtx_unlock(&print_lock);
+				task_start();
 				break;
 			}
 			case  7: printf("Machine timer (%d)\n", HART_ID); break;
