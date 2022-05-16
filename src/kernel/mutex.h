@@ -6,7 +6,7 @@
 #include <types.h>
 
 
-typedef i32 mtx;
+typedef volatile i32 mtx;
 
 
 void mtx_lock(mtx* lock);

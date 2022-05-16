@@ -8,6 +8,8 @@
 #include "memory.h"
 #include "mmu.h"
 
+#include "mutex.h"
+
 #include "plic.h"
 
 
@@ -20,8 +22,10 @@ typedef struct {
 extern volatile mmu_table kernel_pagetable;
 
 
-void kernel_trap_supervisor();
 void kernel_trap_user();
+
+
+mtx print_lock;
 
 
 u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, u64 epc, trap_frame* frame) {
@@ -41,9 +45,13 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 
 			case  4: printf("User timer\n"); break;
 			case  5: {
-				printf("%d\n", HART_ID);
+				mtx_lock(&print_lock);
+
+				printf("%d ", HART_ID);
 				csrw(sie, csrr(sie) & ~INT_STI);
 				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt
+
+				mtx_unlock(&print_lock);
 				break;
 			}
 			case  7: printf("Machine timer (%d)\n", HART_ID); break;
@@ -86,17 +94,19 @@ u64 __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 va
 			case  6:  printf("Store address misaligned\n"); break;
 			case  7:  printf("Store access fault\n"); break;
 
-			case  8: {
-				//printf("Environment call from User mode: a0 = %d\n", frame->x[9]);
-				//printf("%x\n", frame->x[10]);
+			case  8: { // Environment call from User mode
 				switch (frame->x[9]) {
 					case 4: {
+						mtx_lock(&print_lock);
+
 						mmu_table pagetable = (void*)(frame->pagetable_address);
 						char* str = (void*)mmu_v2p(pagetable, frame->x[10]);
 						puts(str);
+
+						mtx_unlock(&print_lock);
+
 						break;
 					}
-
 					default: break;
 				}
 				break;

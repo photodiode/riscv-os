@@ -2,8 +2,7 @@
 #include <types.h>
 #include <riscv.h>
 
-
-typedef i32 mtx;
+#include "mutex.h"
 
 
 void mtx_lock(mtx* lock) {

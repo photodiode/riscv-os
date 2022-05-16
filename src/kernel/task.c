@@ -43,8 +43,11 @@ void __attribute__((aligned(4096))) program_001() {
 	str[2] = 'l';
 	str[3] = 'l';
 	str[4] = 'o';
-	str[5] = '!';
-	str[6] = '\n';
+	str[5] = ',';
+	str[6] = ' ';
+	str[7] = 65 + HART_ID;
+	str[8] = '!';
+	str[9] = '\n';
 
 	asm("li a0, 4");
 	asm("li a1, 0x1000");
@@ -76,7 +79,12 @@ void tasks_init() {
 void kernel_trap_user();
 
 
+mtx task_lock;
+
+
 void task_start(u32 hart_id) {
+
+	mtx_lock(&task_lock);
 
 	tasks[hart_id] = (task) {
 		.state  = TS_RUNNING,
@@ -103,8 +111,6 @@ void task_start(u32 hart_id) {
 	mmu_map(tasks[hart_id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x1000, MMU_PTE_READ_EXECUTE);
 	mmu_map(tasks[hart_id].pagetable, (u64)tasks[hart_id].frame, (u64)tasks[hart_id].frame, PAGE_SIZE, MMU_PTE_READ_WRITE);
 
-	mmu_map(tasks[hart_id].pagetable, 0x10000000UL, 0x10000000UL, 0x100, MMU_PTE_READ_WRITE | MMU_PTE_USER);
-
 
 	rv_status status = {.raw = csrr(sstatus)};
 	status.spp  = 0; // set to user mode
@@ -113,7 +119,9 @@ void task_start(u32 hart_id) {
 	csrw(sstatus, status.raw);
 
 	csrw(sscratch, (u64)tasks[hart_id].frame);
-	csrw(sepc, TASK_ENTRY_POINT);
+	csrw(sepc, tasks[hart_id].pc);
+
+	mtx_unlock(&task_lock);
 
 	// after this nothing outside the task will work
 	csrw(satp, MAKE_SATP(tasks[hart_id].pagetable));
