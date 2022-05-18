@@ -10,6 +10,9 @@
 #include "mutex.h"
 
 
+void kernel_trap_user();
+
+
 typedef enum __attribute__((__packed__)) {
 	TS_NONE,
 	TS_RUNNING,
@@ -24,6 +27,7 @@ typedef struct {
 	u16        id;
 
 	u64       pc;
+	u8*       program;
 	u8*       stack;
 	mmu_table pagetable;
 
@@ -34,27 +38,7 @@ typedef struct {
 extern volatile mmu_table kernel_pagetable;
 
 
-void __attribute__((aligned(4096))) program_001() {
-
-	char* str = (void*)0x1000;
-
-	str[0] = 'H';
-	str[1] = 'e';
-	str[2] = 'l';
-	str[3] = 'l';
-	str[4] = 'o';
-	str[5] = ',';
-	str[6] = ' ';
-	str[7] = 65 + HART_ID;
-	str[8] = '!';
-	str[9] = '\n';
-
-	asm("li a0, 4");
-	asm("li a1, 0x1000");
-	asm("ecall");
-
-	while (1);
-}
+#include "../apps/program.h"
 
 
 #define TASK_PAGES 1
@@ -65,7 +49,7 @@ task* tasks           = NULL;
 #define TASK_ENTRY_POINT 0x0
 
 
-void kernel_trap_user();
+void* memcpy(void* dest, const void* src, const u64 size);
 
 
 void task_create() {
@@ -73,18 +57,24 @@ void task_create() {
 	u16 id = task_first_free;
 	task_first_free += 1;
 
+	#define CEIL_DIV(A, B) (1 + ((A - 1) / B))
+	u64 program_pages = CEIL_DIV(sizeof(program), PAGE_SIZE);
+
 	tasks[id] = (task) {
 		.state  = TS_RUNNING,
 		.parent = 0,
 		.id     = id,
 
+		.program   = alloc(program_pages),
 		.stack     = alloc(2),
 		.pagetable = alloc(1),
 		.frame     = alloc(1)
 	};
 
-	tasks[id].frame->x[1] = 0x3000; // sp
-	tasks[id].frame->pc   = TASK_ENTRY_POINT;
+	memcpy(tasks[id].program, program, program_pages*PAGE_SIZE);
+
+	tasks[id].frame->sp   = 0x4000; // sp
+	tasks[id].frame->epc  = TASK_ENTRY_POINT;
 	tasks[id].frame->satp = MAKE_SATP(tasks[id].pagetable);
 
 	tasks[id].frame->kernel_satp = MAKE_SATP(kernel_pagetable);
@@ -93,12 +83,13 @@ void task_create() {
 	tasks[id].frame->pagetable_address = (u64)tasks[id].pagetable;
 
 
-	mmu_map(tasks[id].pagetable, (u64)program_001, TASK_ENTRY_POINT, 0x1000, MMU_PTE_READ_EXECUTE | MMU_PTE_USER);
-	mmu_map(tasks[id].pagetable, (u64)tasks[id].stack, 0x1000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
+	mmu_map(tasks[id].pagetable, (u64)tasks[id].program, TASK_ENTRY_POINT, program_pages*PAGE_SIZE, MMU_PTE_READ_WRITE_EXECUTE | MMU_PTE_USER);
+	mmu_map(tasks[id].pagetable, (u64)tasks[id].stack, 0x2000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
 
-	mmu_map(tasks[id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x1000, MMU_PTE_READ_EXECUTE);
+	mmu_map(tasks[id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x2000, MMU_PTE_READ_EXECUTE);
 	mmu_map(tasks[id].pagetable, (u64)tasks[id].frame, (u64)tasks[id].frame, PAGE_SIZE, MMU_PTE_READ_WRITE);
 
+	//printf("%x = %x\n", mmu_v2p(tasks[id].pagetable, 0x1030), (u64)tasks[id].program);
 }
 
 
@@ -112,10 +103,12 @@ void tasks_init() {
 	task_create();
 	task_create();
 	task_create();
+	task_create();
+	task_create();
 }
 
 
-void load_task(u64 pc);
+void load_task();
 
 
 mtx task_lock;
@@ -131,6 +124,7 @@ void task_start() {
 
 	mtx_unlock(&task_lock);
 
+
 	rv_status status = {.raw = csrr(sstatus)};
 	status.spp  = 0; // set to user mode
 	status.sie  = 0; // turn off interrupts
@@ -138,16 +132,9 @@ void task_start() {
 	csrw(sstatus, status.raw);
 
 	csrw(sscratch, (u64)tasks[id].frame);
-	//csrw(sepc, tasks[id].frame->pc);
 
-	// after this nothing outside the task will work
-	/*csrw(satp, MAKE_SATP(tasks[id].pagetable));
-	sfence_vma();
 
-	asm("li sp, 0x2FFF");
-	asm("sret");*/
-
-	load_task(tasks[id].frame->pc);
+	load_task();
 }
 
 

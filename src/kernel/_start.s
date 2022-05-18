@@ -14,7 +14,3 @@ _start:
 	# ----
 
 	call setup # setup.c
-
-spin:
-	wfi
-	j spin

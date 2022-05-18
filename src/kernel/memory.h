@@ -33,17 +33,24 @@ extern const u64 _memory_end;
 
 
 typedef struct {
-	u64 x[32]; // general purpose registers
+	u64 ra, sp, gp, tp;
+	u64 t0, t1, t2;
+	u64 s0, s1;
+	u64 a0, a1, a2, a3, a4, a5, a6, a7;
+	u64 s2, s3, s4, s5, s6, s7, s8, s9, s10, s11;
+	u64 t3, t4, t5, t6;
+
 	//u64 f[32]; // floating point registers
-	u64 satp;
+	u64 satp; // 248
 
-	u64 kernel_satp;
-	u64 kernel_sp;
+	u64 kernel_satp; // 256
+	u64 kernel_sp;   // 264
+	u64 kernel_trap; // 272
 
-	u64 hart_id;
-	u64 pagetable_address;
+	u64 hart_id; // 280
+	u64 pagetable_address; //288
 
-	u64 pc;
+	u64 epc; //296
 } trap_frame; // hart state
 
 

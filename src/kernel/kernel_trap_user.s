@@ -2,7 +2,7 @@
 .global kernel_trap_user
 .global load_task
 
-.align 4
+.balign 0x1000
 kernel_trap_user:
 
 	// save the registers
@@ -39,40 +39,44 @@ kernel_trap_user:
 	sd t4, 224(t6)
 	sd t5, 232(t6)
 
-	mv   t5, t6
-	csrr t6, sscratch
-	sd   t6, 240(t5)
-	csrw sscratch, t5
+	mv    t5, t6
+	csrrw t6, sscratch, t6
+	sd    t6, 240(t5)
 	// ----
+
+
+	ld t0, 256(t5) // load frame.kernel_satp into t0
+	ld sp, 264(t5) // load frame.kernel_sp into sp
+
+	sd   tp, 280(t5) // store hart id into frame.hart_id
+	csrr t6, sepc    // store epc into frame.epc
+	sd   t6, 296(t5)
+
+
+	csrw satp, t0
+	sfence.vma zero, zero
+
 
 	csrr a0, scause
 	csrr a1, stval
-	csrr a2, sepc
-	csrr a3, sscratch // trap frame
-
-	ld sp, 272(t5) // load frame.kernel_sp into sp
-	sd tp, 280(t5) // store hart id into frame
-	sd a2, 296(t5) // store sepc into frame
-
-	ld t5, 264(t5) // load frame.kernel_satp into t5
-	csrw satp, t5
-	sfence.vma zero, zero
+	csrr a2, sscratch // trap frame
 
 	// call the C trap handler in trap.c
 	call kernel_trap
 
-load_task:
 
-	csrw sepc, a0
+load_task:
 
 	// restore registers
 	csrr t6, sscratch
 
-	ld t5, 256(t6) // load frame.satp
-	csrw satp, t5
+	ld t0, 248(t6) // load frame.satp
+
+	csrw satp, t0
 	sfence.vma zero, zero
 
-	sd a0, 296(t6) // store sepc into frame
+	ld t0, 296(t6) // store epc into frame
+	csrw sepc, t0
 
 	ld ra, 0(t6)
 	ld sp, 8(t6)

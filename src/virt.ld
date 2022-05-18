@@ -22,6 +22,8 @@ SECTIONS {
 		PROVIDE(_rodata_end = .);
 	}
 
+	. = ALIGN(0x1000);
+
 	.data : {
 		PROVIDE(_data_start = .);
 		*(.sdata .sdata.*)
@@ -39,6 +41,7 @@ SECTIONS {
 	}
 
 	. = ALIGN(0x1000);
+
 	PROVIDE(_k_stack_start = .);
 	PROVIDE(_k_stack_size  = 0x2000);
 

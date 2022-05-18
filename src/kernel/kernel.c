@@ -96,7 +96,8 @@ void kernel() {
 	csrw(stvec, (u64)kernel_trap_user);
 	// ----
 
-	MTIMECMP[HART_ID] = (HART_ID + 1) * 5000000UL;
+	MTIMECMP[HART_ID] = MTIME + ((HART_ID + 1) * 5000000UL);
+	//MTIMECMP[HART_ID] = MTIME + 10000UL;
 
 	task_start();
 }

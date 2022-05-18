@@ -1,6 +1,8 @@
 
 #include <stdarg.h>
+
 #include "uart.h"
+#include "mutex.h"
 
 
 int putchar(const char c) {
@@ -31,10 +33,15 @@ char* itostr(unsigned long i, const int base) {
 }
 
 
+static mtx print_lock;
+
+
 void printf(const char* format, ...) {
 
 	va_list arg;
 	va_start(arg, format);
+
+	mtx_lock(&print_lock);
 
 	while (*format != '\0') {
 
@@ -86,4 +93,6 @@ void printf(const char* format, ...) {
 
 		format++;
 	}
+
+	mtx_unlock(&print_lock);
 }
