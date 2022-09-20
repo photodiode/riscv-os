@@ -75,7 +75,7 @@ load_task:
 	csrw satp, t0
 	sfence.vma zero, zero
 
-	ld t0, 296(t6) // store epc into frame
+	ld t0, 296(t6) // load epc from frame.epc
 	csrw sepc, t0
 
 	ld ra, 0(t6)

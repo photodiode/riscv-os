@@ -3,7 +3,7 @@
 
 .equ MTIMECMP, 0x02004000
 
-.balign 32
+.balign 4
 mtimer_vector:
 
 	// make room to save registers

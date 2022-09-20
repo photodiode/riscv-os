@@ -138,7 +138,7 @@ u64 mmu_v2p(const mmu_table root, const u64 virtual_address) {
 	for (int i = 2; i >= 0; i--) {
 
 		if (!v->valid) {
-			printf("mmu: invalid entry (%x)\n", virtual_address);
+			//printf("mmu: invalid entry (%x)\n", virtual_address);
 			break;
 
 		} else if ((v->read || v->write || v->execute)) {

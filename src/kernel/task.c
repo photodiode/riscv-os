@@ -38,7 +38,8 @@ typedef struct {
 extern volatile mmu_table kernel_pagetable;
 
 
-#include "../apps/program.h"
+extern u8  _binary_hello_bin_start[];
+extern u64 _binary_hello_bin_size;
 
 
 #define TASK_PAGES 1
@@ -58,7 +59,7 @@ void task_create() {
 	task_first_free += 1;
 
 	#define CEIL_DIV(A, B) (1 + ((A - 1) / B))
-	u64 program_pages = CEIL_DIV(sizeof(program), PAGE_SIZE);
+	u64 program_pages = CEIL_DIV((u64)&_binary_hello_bin_size, PAGE_SIZE);
 
 	tasks[id] = (task) {
 		.state  = TS_RUNNING,
@@ -71,7 +72,9 @@ void task_create() {
 		.frame     = alloc(1)
 	};
 
-	memcpy(tasks[id].program, program, program_pages*PAGE_SIZE);
+
+	memcpy(tasks[id].program, &_binary_hello_bin_start, (u64)&_binary_hello_bin_size);
+
 
 	tasks[id].frame->sp   = 0x4000; // sp
 	tasks[id].frame->epc  = TASK_ENTRY_POINT;
@@ -101,10 +104,6 @@ void tasks_init() {
 	task_create();
 	task_create();
 	task_create();
-	task_create();
-	task_create();
-	task_create();
-	task_create();
 }
 
 
@@ -124,15 +123,7 @@ void task_start() {
 
 	mtx_unlock(&task_lock);
 
-
-	rv_status status = {.raw = csrr(sstatus)};
-	status.spp  = 0; // set to user mode
-	status.sie  = 0; // turn off interrupts
-	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
-	csrw(sstatus, status.raw);
-
 	csrw(sscratch, (u64)tasks[id].frame);
-
 
 	load_task();
 }
