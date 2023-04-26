@@ -5,8 +5,6 @@ VERSION = alpha
 SRC_DIRS = src/kernel src/libc
 INC_DIRS = src/include
 
-APPS = src/apps/hello.app
-
 TMP_DIR  = .tmp
 BIN_DIR  = bin
 
@@ -41,12 +39,12 @@ OBJ_FILES := $(C_FILES:%.c=$(TMP_DIR)/%.o) $(ASM_FILES:%.s=$(TMP_DIR)/%.o)
 DEP_FILES := $(OBJ_FILES:.o=.d)
 
 
-all: apps $(TARGET)
+all: $(TARGET)
 
 
 $(TARGET): $(OBJ_FILES) $(LINKER_SCRIPT) | $(TMP_DIR)/$(BIN_DIR)
 	@echo "link  $@"
-	@$(LINK) -T$(LINKER_SCRIPT) $(APPS) $^ -o $(TMP_DIR)/$@.elf
+	@$(LINK) -T$(LINKER_SCRIPT) $^ -o $(TMP_DIR)/$@.elf
 	@$(COPY) $(TMP_DIR)/$@.elf -O binary $@
 
 $(TMP_DIR)/%.o: %.c $(TMP_DIR)/%.d | $(TMP_DIR)
@@ -58,10 +56,6 @@ $(TMP_DIR)/%.o: %.s | $(TMP_DIR)
 	@echo "as    $<"
 	@mkdir -p $(@D)
 	@$(CC) -c -o $@ $<
-
-
-apps:
-	@(cd src/apps && make -s -f makefile)
 
 
 clean:

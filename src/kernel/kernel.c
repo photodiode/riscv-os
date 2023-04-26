@@ -10,17 +10,17 @@
 
 #include "plic.h"
 //#include "task.h"
-void tasks_init();
-void task_start();
+void tasks_init(void);
+void task_start(void);
 
 
-void kernel_trap_user();
+void kernel_trap_user(void);
 
 
 // kernel page table mapping
 volatile mmu_table kernel_pagetable;
 
-static void mmu_map_kernel() {
+static void mmu_map_kernel(void) {
 
 	kernel_pagetable = alloc(1);
 
@@ -33,13 +33,6 @@ static void mmu_map_kernel() {
 	mmu_map(kernel_pagetable, PLIC,  PLIC,  0x400000, MMU_PTE_READ_WRITE);
 
 	mmu_map(kernel_pagetable, (u64)MTIMECMP, (u64)MTIMECMP, 0x8000, MMU_PTE_READ_WRITE); // timer interrupts
-
-}
-
-
-void mmu_enable() {
-	csrw(satp, MAKE_SATP(kernel_pagetable));
-	sfence_vma();
 }
 // ----
 
@@ -51,7 +44,7 @@ volatile static bool started = false;
 //void virtio_init();
 
 
-void kernel() {
+void kernel(void) {
 
 	while (!cpu_count); // wait for cpu count to be official
 
@@ -59,7 +52,6 @@ void kernel() {
 
 		uart_init();
 
-		//puts("\n◢◤◣◤◣◢◤◢◤◣◤◢◤◣\n\33[1;31m━━━━━━━━━━━━━━\33[0m\n\n");
 		puts("\n\33[31;1m]\33[0m RISC-V OS \33[31;1m[\33[0m\n\n");
 
 		printf("CPU: %d cores\n", cpu_count);
@@ -69,7 +61,6 @@ void kernel() {
 		memory_init(cpu_count);
 
 		mmu_map_kernel();
-		mmu_enable();
 
 		plic_init();
 		plic_hart_init(HART_ID);
@@ -78,18 +69,18 @@ void kernel() {
 
 		printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
 
-		__sync_synchronize(); // memory barrier
-
 		started = true;
 
 	} else { // other cores
-		while(!started);
-
-		__sync_synchronize(); // memory barrier
-
-		mmu_enable();
-		plic_hart_init(HART_ID);
+		while (!started);
 	}
+
+	__sync_synchronize(); // memory barrier
+
+	// enable kernel pagetable
+	csrw(satp, MAKE_SATP(kernel_pagetable));
+	sfence_vma();
+	// ----
 
 	// enable interrupts
 	csrw(sie, INT_SEI | INT_STI | INT_SSI);
@@ -102,7 +93,6 @@ void kernel() {
 	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
 	csrw(sstatus, status.raw);
 
-	//MTIMECMP[HART_ID] = MTIME + ((HART_ID + 1) * 5000000UL);
 	MTIMECMP[HART_ID] = MTIME;
 
 	task_start();

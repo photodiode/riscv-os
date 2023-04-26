@@ -4,37 +4,35 @@
 #define asm __asm__ volatile
 
 
-int  main();
+int main(void);
 
-void _start() {
+void _start(void) {
 	main();
 	while (1);
 }
 
 
+
 void print(volatile char* str);
-void wait();
+void putchar(char c);
+void wait(void);
 
 
-int main() {
-	char* str = "Hello  !\n";
-
+int main(void) {
 	for (int i = 0; i < 5; i++) {
-		str[6] = 65+i;
-		print(str);
+		putchar(65+i);
 		wait();
 	}
 
 	return 0;
 }
 
-
-void print(volatile char* str) {
-	asm("mv a1, %0" : : "r" ((u64)str));
-	asm("li a0, 4");
+void putchar(char c) {
+	asm("mv a1, %0" : : "r" (c));
+	asm("li a0, 3");
 	asm("ecall");
 }
 
-void wait() {
-	for (volatile u64 i = 0; i < 0x3ffffff; i++);
+void wait(void) {
+	for (volatile u64 i = 0; i < 0x1ffffff; i++);
 }

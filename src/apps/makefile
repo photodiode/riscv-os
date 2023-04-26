@@ -18,13 +18,9 @@ CFLAGS += -Wno-error=unused-command-line-argument -Wno-gnu-statement-expression
 #CFLAGS += -fno-pie
 # ----
 
-$(TARGET).app: $(TARGET).bin
-	$(LINK) -r -b binary -o $@ $<
-
-%.bin: %.o
+$(TARGET).bin: $(TARGET).o
 	$(LINK) -s --gc-sections -Ttext 0x0 $^ -o $<
 	$(COPY) $< -O binary $@
 
-%.o: %.c
-	$(CC) $(CFLAGS) -S -o $<.asm $<
-	$(CC) $(CFLAGS) -c -o $@ $<
+%.o: %.asm
+	$(CC) -c -o $@ $<

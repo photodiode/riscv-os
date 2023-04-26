@@ -20,15 +20,15 @@ typedef short i16;
 typedef int   i32;
 typedef long  i64;
 
-#define I8_MIN  (-0x7F-1)
-#define I16_MIN (-0x7FFF-1)
-#define I32_MIN (-0x7FFFFFFF-1)
-#define I64_MIN (-0x7FFFFFFFFFFFFFFFL-1)
-
 #define I8_MAX  (0x7F)
 #define I16_MAX (0x7FFF)
 #define I32_MAX (0x7FFFFFFF)
 #define I64_MAX (0x7FFFFFFFFFFFFFFFL)
+
+#define I8_MIN  (-I8_MAX-1)
+#define I16_MIN (-I16_MAX-1)
+#define I32_MIN (-I32_MAX-1)
+#define I64_MIN (-I64_MAX-1)
 // ----
 
 // floating point

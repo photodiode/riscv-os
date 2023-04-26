@@ -8,7 +8,7 @@
 #include "memory.h"
 #include "mmu.h"
 
-#include "mutex.h"
+#include "atomic.h"
 
 #include "plic.h"
 
@@ -22,11 +22,16 @@ typedef struct {
 extern volatile mmu_table kernel_pagetable;
 
 
-void kernel_trap_user();
-void task_start();
+void kernel_trap_user(void);
+void task_start(void);
 
 
 static mtx print_lock;
+
+
+void wait(void) {
+	for (volatile u64 i = 0; i < 0xffffff; i++);
+}
 
 
 #define panic(...) { mtx_lock(&print_lock); printf(__VA_ARGS__); while(1); }
@@ -48,13 +53,16 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 
 			case  4: printf("User timer\n"); break;*/
 			case  5: {
-				//printf("%d ", HART_ID);
+				//mtx_lock(&print_lock);
+				//printf("#%d\n", HART_ID);
+				//mtx_unlock(&print_lock);
 
 				csrw(sie, csrr(sie) & ~INT_STI);
-				//MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt
-				MTIMECMP[HART_ID] = MTIME + 10000UL; // next interrupt
+				//MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt at slow speed
+				//wait(); // pause everything for a little bit
+				MTIMECMP[HART_ID] = MTIME + 10000UL; // next interrupt at full speed
 
-				task_start(); // we don't come back from here
+				//task_start(); // we don't come back from here
 				break;
 			}
 			/*case  7: printf("Machine timer (%d)\n", HART_ID); break;
@@ -65,7 +73,6 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 				const u32 claim_id = plic_get_claim(HART_ID);
 
 				if (claim_id == PLIC_UART0_ID) {
-					mtx_lock(&print_lock);
 					char c = uart_read();
 					switch (c) {
 						case  10: putchar('\n'); break;
@@ -74,7 +81,6 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 
 						default: putchar(c); break;
 					}
-					mtx_unlock(&print_lock);
 				}
 
 				plic_complete(HART_ID, claim_id);
@@ -87,17 +93,17 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 		}
 	} else { // instruction error
 		switch (cause.code) {
-			case  0: panic("Instruction address misaligned\n"); break;
-			case  1: panic("Instruction access fault\n"); break;
-			case  2: panic("Illegal instruction (%x)\n", value); break;
+			case  0: panic("CPU %d: Instruction address misaligned (0x%x) 0x%x\n", HART_ID, value, frame->epc); break;
+			case  1: panic("CPU %d: Instruction access fault\n", HART_ID); break;
+			case  2: panic("CPU %d: Illegal instruction 0x%x at 0x%x\n", HART_ID, value, frame->epc); break;
 
 			//case  3: printf("Breakpoint\n"); break;
 
-			case  4: panic("Load address misaligned\n"); break;
-			case  5: panic("Load access fault\n"); break;
+			case  4: panic("CPU %d: Load address misaligned\n", HART_ID); break;
+			case  5: panic("CPU %d: Load access fault\n", HART_ID); break;
 
-			case  6:  panic("Store address misaligned at %x by %x\n", value, frame->epc); break;
-			case  7:  panic("Store access fault\n"); break;
+			case  6: panic("CPU %d: Store address misaligned at 0x%x by 0x%x\n", HART_ID, value, frame->epc); break;
+			case  7: panic("CPU %d: Store access fault\n", HART_ID); break;
 
 			case  8: { // Environment call from User mode
 				//printf("Environment call from User mode\n");
@@ -123,9 +129,9 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 			}
 			case 11: printf("Environment call from Machine mode\n"); break;*/
 
-			case 12: panic("Instruction page fault by %x\n", value); break;
-			case 13: panic("Load page fault at %x by %x\n", value, frame->epc); break;
-			case 15: panic("Store page fault at %x by %x\n", value, frame->epc); break;
+			case 12: panic("CPU %d: Instruction page fault at 0x%x\n", HART_ID, value); break;
+			case 13: panic("CPU %d: Load page fault at 0x%x by 0x%x\n", HART_ID, value, frame->epc); break;
+			case 15: panic("CPU %d: Store page fault at 0x%x by 0x%x\n", HART_ID, value, frame->epc); break;
 
 			default: break;
 		}

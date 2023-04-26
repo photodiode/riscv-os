@@ -52,7 +52,7 @@ static const u8 virtio_device_count = 8;
 static volatile vio_device* const virtio = (void*)0x10001000;
 
 
-void virtio_init() {
+void virtio_init(void) {
 
 	for (u8 i = 0; i < virtio_device_count; i++) {
 

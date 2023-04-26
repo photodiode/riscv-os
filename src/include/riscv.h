@@ -94,7 +94,7 @@ typedef union {
 #define MAKE_SATP(PAGE_TABLE) ((((u64)PAGE_TABLE) >> 12) | SATP_SV39)
 
 // flush the TLB
-static inline void sfence_vma() {
+static inline void sfence_vma(void) {
 	asm("sfence.vma zero, zero");
 }
 // ----
@@ -117,7 +117,7 @@ static inline void sfence_vma() {
 
 
 // read and write tp, the thread pointer, which holds this core's hartid
-static inline u64 get_tp() {
+static inline u64 get_tp(void) {
 	u64 x;
 	asm("mv %0, tp" : "=r" (x));
 	return x;

@@ -8,10 +8,10 @@
 
 #define PLIC 0x0c000000UL
 
-#define PLIC_UART0_ID 10
+#define PLIC_UART0_ID 10UL
 
 
-void plic_init();
+void plic_init(void);
 void plic_hart_init(u32 hart_id);
 
 u32  plic_get_claim(u32 hart_id);

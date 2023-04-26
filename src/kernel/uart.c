@@ -13,7 +13,7 @@
 
 static volatile u8* const uart = (void*)UART0;
 
-void uart_init() {
+void uart_init(void) {
 
 	uart[LCR] |= (3 & 0x03) << 0; // set word length select bits to 2^3 (8)
 	uart[FCR] |= (1 << 0);        // enable fifo
@@ -24,7 +24,7 @@ void uart_init() {
 	uart[LCR] &= ~(1 << 7);       // clear blab
 }
 
-char uart_read() {
+char uart_read(void) {
 	if ((uart[LSR] & 0x01) == 1) {
 		return uart[RBR];
 	}

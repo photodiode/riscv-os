@@ -5,7 +5,7 @@
 #include <types.h>
 
 
-#define PAGE_SIZE 4096
+#define PAGE_SIZE 0x1000
 
 
 // memory constants

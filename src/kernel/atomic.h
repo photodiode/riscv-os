@@ -1,6 +1,6 @@
 
-#ifndef mutex_h
-#define mutex_h
+#ifndef atomic_h
+#define atomic_h
 
 
 #include <types.h>
@@ -13,4 +13,4 @@ void mtx_lock(mtx* lock);
 void mtx_unlock(mtx* lock);
 
 
-#endif // mutex_h
+#endif // atomic_h

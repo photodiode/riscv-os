@@ -8,15 +8,15 @@
 #include "memory.h"
 
 
-void kernel();
-void mtimer_vector();
+void kernel(void);
+void mtimer_vector(void);
 
 
 volatile u32 cpu_count = 0;
 static volatile u32 tmp_cpu_count = 0;
 
 
-void setup() {
+void setup(void) {
 
 	// keep each cores hartid in its thread pointer register
 	const u64 id = csrr(mhartid);

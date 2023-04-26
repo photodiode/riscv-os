@@ -5,7 +5,7 @@
 
 #include "memory.h"
 
-#include "mutex.h"
+#include "atomic.h"
 
 
 static void* heap      = NULL;

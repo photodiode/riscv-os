@@ -13,7 +13,7 @@ SECTIONS {
 		PROVIDE(_text_end = .);
 	}
 
-	. = ALIGN(0x1000);
+	. = ALIGN(0x10);
 
 	.rodata : {
 		PROVIDE(_rodata_start = .);
@@ -21,7 +21,7 @@ SECTIONS {
 		PROVIDE(_rodata_end = .);
 	}
 
-	. = ALIGN(0x1000);
+	. = ALIGN(0x10);
 
 	.data : {
 		PROVIDE(_data_start = .);

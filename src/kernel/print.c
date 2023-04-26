@@ -50,7 +50,6 @@ void printf(const char* format, ...) {
 		switch (*format) {
 			case 'b': { // bit string
 				const unsigned long i = va_arg(arg, unsigned long);
-				puts("0b");
 				puts(itostr(i, 2));
 				break;
 			}
@@ -79,7 +78,6 @@ void printf(const char* format, ...) {
 			}
 			case 'x': { // hex integer
 				const unsigned long i = va_arg(arg, unsigned long);
-				puts("0x");
 				puts(itostr(i, 16));
 				break;
 			}

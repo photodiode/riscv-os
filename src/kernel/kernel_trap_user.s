@@ -71,7 +71,6 @@ load_task:
 	csrr t6, sscratch
 
 	ld t0, 248(t6) // load frame.satp
-
 	csrw satp, t0
 	sfence.vma zero, zero
 
