@@ -178,7 +178,7 @@ void _free(void** ptr) {
 
 
 #define CEIL_DIV(A, B) (1 + ((A - 1) / B))
-void memory_init(const u64 cpu_count) {
+void alloc_init(const u64 cpu_count) {
 
 	// set up heap
 	const u64 k_stack_end = K_STACK_START + (K_STACK_SIZE * cpu_count);

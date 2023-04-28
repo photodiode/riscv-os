@@ -6,7 +6,7 @@
 #include <types.h>
 
 
-#define PLIC 0x0c000000UL
+#define PLIC 0x0C000000UL
 
 #define PLIC_UART0_ID 10UL
 

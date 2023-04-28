@@ -55,7 +55,7 @@ typedef struct {
 
 
 // kernel page allocator
-void  memory_init(u64 cpu_count);
+void  alloc_init(u64 cpu_count);
 
 void* alloc(u64 page_count); // allocate 4KiB page
 void  _free(void** ptr);

@@ -1,3 +1,9 @@
 #!/bin/bash
 
-(cd bin && qemu-system-riscv64 -machine virt -cpu rv64 -d guest_errors,unimp -D qemu.log -smp 4 -m 128M -bios none -nographic -kernel kernel -drive if=none,format=raw,file=main.storage,id=main -device virtio-blk-device,scsi=off,drive=main -device virtio-gpu-device -device virtio-keyboard-device -device virtio-mouse-device)
+HARTS=4
+MEMORY=128M
+DEVICES="-device virtio-blk-pci,scsi=off,drive=main -device bochs-display,bus=pcie.0"
+
+KERNEL=kernel
+
+(cd bin && qemu-system-riscv64 -machine virt -cpu rv64 -d guest_errors,unimp -D qemu.log -smp $HARTS -m $MEMORY -bios none -kernel $KERNEL -serial mon:stdio -drive if=none,format=raw,file=main.storage,id=main $DEVICES)

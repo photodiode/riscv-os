@@ -32,7 +32,7 @@ typedef long  i64;
 // ----
 
 // floating point
-//typedef ???    f8;
+/*//typedef ???    f8;
 typedef __fp16 f16;
 typedef float  f32;
 typedef double f64;
@@ -46,7 +46,7 @@ typedef double f64;
 #define F64_MAX 0x1.FFFFFFFFFFFFFp1023
 
 #define INFINITY __builtin_inff()
-#define NAN      __builtin_nanf("")
+#define NAN      __builtin_nanf("")*/
 // ----
 
 // booleans

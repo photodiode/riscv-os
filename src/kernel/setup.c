@@ -12,23 +12,11 @@ void kernel(void);
 void mtimer_vector(void);
 
 
-volatile u32 cpu_count = 0;
-static volatile u32 tmp_cpu_count = 0;
-
-
 void setup(void) {
 
 	// keep each cores hartid in its thread pointer register
 	const u64 id = csrr(mhartid);
 	set_tp(id);
-
-	// wait for other cores to count their id
-	while (tmp_cpu_count < id);
-	tmp_cpu_count += 1;
-
-	for (volatile u64 i = 0; i < 0xfffff; i++); // small wait to see if any other cores exist
-	if (id == tmp_cpu_count-1) cpu_count = tmp_cpu_count; // if not assume we're last
-	// ----
 
 	// set basic PMP (physical memory protection)
 	csrw(pmpcfg0,  PMP_R | PMP_W | PMP_X | PMP_NAPOT);

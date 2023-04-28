@@ -1,4 +1,6 @@
 
+#include <stdarg.h>
+
 #include <types.h>
 #include <riscv.h>
 
@@ -19,7 +21,7 @@ typedef struct {
 } trap_cause;
 
 
-extern volatile mmu_table kernel_pagetable;
+//extern volatile mmu_pte* kernel_pagetable;
 
 
 void kernel_trap_user(void);
@@ -34,10 +36,21 @@ void wait(void) {
 }
 
 
-#define panic(...) { mtx_lock(&print_lock); printf(__VA_ARGS__); while(1); }
+void panic(char *format, ...) {
+	mtx_lock(&print_lock);
+
+	printf("Fatal: ");
+
+	va_list arg;
+	va_start(arg, format);
+	printf(format, arg);
+	va_end(arg);
+
+	asm("wfi");
+}
 
 
-void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, trap_frame* frame) {
+void __attribute__((aligned(8))) kernel_trap(const trap_cause cause, const u64 value, trap_frame* frame) {
 
 	(void)value;
 
@@ -110,7 +123,7 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 				switch (frame->a0) {
 					case 4: {
 
-						mmu_table pagetable = (void*)(frame->pagetable_address);
+						mmu_pte* pagetable = (void*)(frame->pagetable_address);
 						char* str = (void*)mmu_v2p(pagetable, frame->a1);
 
 						mtx_lock(&print_lock);

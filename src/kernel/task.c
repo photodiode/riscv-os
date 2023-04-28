@@ -14,10 +14,10 @@ void kernel_trap_user(void);
 
 
 typedef enum __attribute__((__packed__)) {
-	TS_NONE,
-	TS_RUNNING,
-	TS_SLEEPING,
-	TS_WAITING
+	TASK_NONE,
+	TASK_RUNNING,
+	TASK_WAITING,
+	TASK_SLEEPING
 } task_state;
 
 
@@ -26,18 +26,18 @@ typedef struct {
 	u16        parent;
 	u16        id;
 
-	bool executing;
+	u64        pad[2];
 
-	u64       pc;
-	u8*       program;
-	u8*       stack;
-	mmu_table pagetable;
+	u64      pc;
+	u8*      program;
+	u8*      stack;
+	mmu_pte* pagetable;
 
 	trap_frame* frame;
 } task;
 
 
-extern volatile mmu_table kernel_pagetable;
+extern mmu_pte* kernel_pagetable;
 
 #define hello_app_size 97
 const u8 hello_app[hello_app_size] = {
@@ -77,11 +77,9 @@ u16 task_create(void) {
 	u64 program_pages = CEIL_DIV((u64)hello_app_size, PAGE_SIZE);
 
 	tasks[id] = (task) {
-		.state  = TS_RUNNING,
+		.state  = TASK_WAITING,
 		.parent = 0,
 		.id     = id,
-
-		.executing = false,
 
 		.program   = alloc(program_pages),
 		.stack     = alloc(2),
@@ -121,6 +119,9 @@ void tasks_init(void) {
 	tasks = alloc(TASK_PAGES);
 	task_count = (PAGE_SIZE * TASK_PAGES) / sizeof(task);
 
+	printf("task size: %d\n", sizeof(task));
+	printf("task max count: %d\n", task_count);
+
 	task_create();
 	task_create();
 	task_create();
@@ -138,12 +139,12 @@ void task_start(void) {
 
 	mtx_lock(&task_lock);
 
-	while (tasks[id].executing) {
+	while (tasks[id].state != TASK_WAITING) {
 		id = (id + 1) % task_first_free;
 	}
 
-	tasks[id].executing = true;
-	tasks[id].program[hello_app_size-4] = 0x30 + HART_ID;
+	tasks[id].state = TASK_RUNNING;
+	tasks[id].program[hello_app_size-4] = 0x30 + HART_ID; // change underscore for hart id
 
 	mtx_unlock(&task_lock);
 
