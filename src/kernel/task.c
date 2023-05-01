@@ -125,6 +125,7 @@ void tasks_init(void) {
 	task_create();
 	task_create();
 	task_create();
+	task_create();
 }
 
 

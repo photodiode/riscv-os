@@ -8,7 +8,10 @@
 #include "memory.h"
 #include "mmu.h"
 
+#include "pci.h"
+
 #include "plic.h"
+
 //#include "task.h"
 void tasks_init(void);
 void task_start(void);
@@ -52,27 +55,6 @@ static volatile u16* fw_cfg_selector = (void*)(FW_CFG +  8);
 static volatile u64* fw_cfg_data     = (void*)(FW_CFG +  0);
 
 
-#define PCIE_ECAM 0x30000000UL
-#define PCIE_BUS(bus, slot, func) (PCIE_ECAM + (((bus * 256) + (slot * 8) + func) * 4096))
-
-
-typedef struct {
-	const u16 vendor;
-	const u16 device;
-	      u16 command;
-	const u16 status;
-
-	const u8  rev, interface, subclass, class;
-	      u8  bist;
-	const u8  type;
-	      u8  latency_timer;
-	const u8  cache_line_size;
-
-	const u32 bar0;
-
-} pcie_header;
-
-
 void kernel(void) {
 
 	static volatile bool started = false;
@@ -90,18 +72,9 @@ void kernel(void) {
 
 		printf("CPU: %d cores\n", cpu_count);
 
-		//virtio_init();
-
 		alloc_init(cpu_count);
 
-		pcie_header* header = (void*)PCIE_BUS(0, 1, 0);
-
-		printf("PCIE vendor: 0x%x\n", header->vendor);
-		printf("PCIE device: 0x%x\n", header->device);
-		printf("PCIE status: 0b%b\n", header->status);
-		printf("PCIE type:   0x%x\n", header->type);
-		printf("PCIE class:  0x%x, 0x%x, 0x%x\n", header->class, header->subclass, header->interface);
-		printf("PCIE: 0b%b\n", header->bar0);
+		pci_init();
 
 		mmu_map_kernel();
 
@@ -138,6 +111,8 @@ void kernel(void) {
 	status.sie  = 0; // turn off interrupts
 	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
 	csrw(sstatus, status.raw);
+
+	MTIMECMP[HART_ID] = MTIME + 1000000UL; // some delay
 
 	task_start();
 }

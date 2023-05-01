@@ -31,11 +31,6 @@ void task_start(void);
 static splk print_lock;
 
 
-void wait(void) {
-	for (volatile u64 i = 0; i < 0xffffff; i++);
-}
-
-
 void panic(char *format, ...) {
 	splk_lock(&print_lock);
 
@@ -50,28 +45,27 @@ void panic(char *format, ...) {
 }
 
 
-void __attribute__((aligned(8))) kernel_trap(const trap_cause cause, const u64 value, trap_frame* frame) {
+void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, trap_frame* frame) {
 
 	(void)value;
 
 	if (cause.interrupt) { // interrupt
 		switch (cause.code) {
-			/*case  0: printf("User software\n"); break;
-			case  1: {
-				printf("Supervisor software\n");
-				csrw(sip, csrr(sip) & ~INT_SSI);
-				break;
-			}
-			case  3: printf("Machine software\n"); break;
+			//case  0: printf("User software\n"); break;
+			//case  1:  printf("Supervisor software\n"); break;
+			//case  3: printf("Machine software\n"); break;
 
-			case  4: printf("User timer\n"); break;*/
+			//case  4: printf("User timer\n"); break;*/
 			case  5: { // supervisor timer interrupt
 				csrw(sie, csrr(sie) & ~INT_STI);
-				//MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt at slow speed
-				//wait(); // pause everything for a little bit
+
+				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt at slow speed
 				//MTIMECMP[HART_ID] = MTIME + 10000UL; // next interrupt at full speed
 
-				//task_start(); // we don't come back from here
+				splk_lock(&print_lock);
+				puts("timer\n");
+				splk_unlock(&print_lock);
+
 				break;
 			}
 			/*case  7: printf("Machine timer (%d)\n", HART_ID); break;

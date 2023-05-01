@@ -26,11 +26,11 @@ void setup(void) {
 	// send all interrupts and exceptions to supervisor mode
 	csrw(mideleg, 0xffff);
 	csrw(medeleg, 0xffff);
-	csrw(sie, csrr(sie) | INT_SEI | INT_STI | INT_SSI);
+	csrw(sie, csrr(sie) | INT_SEI | INT_SSI);
 	// ----
 
 	// timer
-	MTIMECMP[HART_ID] = MTIME + 10000UL; // set timer interval
+	MTIMECMP[HART_ID] = -1;
 	csrw(mie, csrr(mie) | INT_MTI);
 	csrw(mtvec, (u64)mtimer_vector);
 	// ----
