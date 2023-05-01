@@ -5,13 +5,10 @@
 
 void kernel(void);
 void mtimer_vector(void);
+void kernel_trap_vector(void);
 
 
 void setup(void) {
-
-	// keep each cores hartid in its thread pointer register
-	const u64 id = csrr(mhartid);
-	set_tp(id);
 
 	// set basic PMP (physical memory protection)
 	csrw(pmpcfg0,  PMP_R | PMP_W | PMP_X | PMP_NAPOT);
@@ -26,7 +23,7 @@ void setup(void) {
 	// send all interrupts and exceptions to supervisor mode
 	csrw(mideleg, 0xffff);
 	csrw(medeleg, 0xffff);
-	csrw(sie, csrr(sie) | INT_SEI | INT_SSI);
+	csrw(stvec, (u64)kernel_trap_vector);
 	// ----
 
 	// timer

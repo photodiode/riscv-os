@@ -124,10 +124,6 @@ static inline u64 get_tp(void) {
 }
 
 #define HART_ID get_tp()
-
-static inline void set_tp(u64 x) {
-	asm("mv tp, %0" : : "r" (x));
-}
 // ----
 
 #endif // riscv_h

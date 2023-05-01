@@ -8,13 +8,11 @@
 #include "memory.h"
 #include "mmu.h"
 
-#include "pci.h"
+#include "pcie.h"
 
 #include "plic.h"
 
-//#include "task.h"
-void tasks_init(void);
-void task_start(void);
+#include "task.h"
 
 
 void kernel_trap_user(void);
@@ -31,6 +29,8 @@ static void mmu_map_kernel(void) {
 	mmu_map(kernel_pagetable, K_RODATA_START, K_RODATA_START, K_RODATA_END - K_RODATA_START, MMU_PTE_READ);
 
 	mmu_map(kernel_pagetable, K_DATA_START, K_DATA_START, MEMORY_END - K_DATA_START, MMU_PTE_READ_WRITE);
+
+	mmu_map(kernel_pagetable, 0x100000, 0x100000, 0x1000, MMU_PTE_READ_WRITE); // QEMU VIRT TEST
 
 	mmu_map(kernel_pagetable, UART0, UART0, 0x100,    MMU_PTE_READ_WRITE);
 	mmu_map(kernel_pagetable, PLIC,  PLIC,  0x400000, MMU_PTE_READ_WRITE);
@@ -55,6 +55,17 @@ static volatile u16* fw_cfg_selector = (void*)(FW_CFG +  8);
 static volatile u64* fw_cfg_data     = (void*)(FW_CFG +  0);
 
 
+typedef struct {
+	u16 hart_count;
+	struct {
+		task* task;
+	} harts[];
+} system_info;
+
+
+system_info* system;
+
+
 void kernel(void) {
 
 	static volatile bool started = false;
@@ -67,14 +78,17 @@ void kernel(void) {
 
 		// qemu fw_cfg
 		*fw_cfg_selector = FW_CFG_NB_CPUS;
-		u32 cpu_count = (u32)*fw_cfg_data;
+		u16 hart_count = (u32)*fw_cfg_data;
 		// ----
 
-		printf("CPU: %d cores\n", cpu_count);
+		printf("CPU: %d cores\n", hart_count);
 
-		alloc_init(cpu_count);
+		alloc_init(hart_count);
 
-		pci_init();
+		system = alloc(1);
+		system->hart_count = hart_count;
+
+		pcie_init();
 
 		mmu_map_kernel();
 
@@ -84,9 +98,6 @@ void kernel(void) {
 		tasks_init();
 
 		printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
-
-		//*(u32*)0x100000UL = 0x5555; // shutdown
-		//*(u32*)0x100000UL = 0x7777; // reboot
 
 		started = true;
 
@@ -101,18 +112,17 @@ void kernel(void) {
 	sfence_vma();
 	// ----
 
-	// enable interrupts
-	csrw(sie, INT_SEI | INT_STI | INT_SSI);
-	csrw(stvec, (u64)kernel_trap_user);
-	// ----
-
-	rv_status status = {.raw = csrr(sstatus)};
+	/*rv_status status = {.raw = csrr(sstatus)};
 	status.spp  = 0; // set to user mode
 	status.sie  = 0; // turn off interrupts
 	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
-	csrw(sstatus, status.raw);
+	csrw(sstatus, status.raw);*/
 
 	MTIMECMP[HART_ID] = MTIME + 1000000UL; // some delay
+
+	// enable interrupts
+	csrw(sie, csrr(sie) | INT_SEI | INT_SSI);
+	// ----
 
 	task_start();
 }

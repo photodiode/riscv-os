@@ -1,9 +1,9 @@
 
-.global kernel_trap_user
+.global kernel_trap_vector
 .global load_task
 
 .balign 0x1000
-kernel_trap_user:
+kernel_trap_vector:
 
 	// save the registers
 	csrrw t6, sscratch, t6

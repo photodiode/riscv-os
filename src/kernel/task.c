@@ -9,32 +9,10 @@
 
 #include "atomic.h"
 
-
-void kernel_trap_user(void);
-
-
-typedef enum __attribute__((__packed__)) {
-	TASK_NONE,
-	TASK_RUNNING,
-	TASK_WAITING,
-	TASK_SLEEPING
-} task_state;
+#include "task.h"
 
 
-typedef struct {
-	task_state state;
-	u16        parent;
-	u16        id;
-
-	u64        pad[2];
-
-	u64      pc;
-	u8*      program;
-	u8*      stack;
-	mmu_pte* pagetable;
-
-	trap_frame* frame;
-} task;
+void kernel_trap_vector(void);
 
 
 extern mmu_pte* kernel_pagetable;
@@ -105,7 +83,7 @@ u16 task_create(void) {
 	mmu_map(tasks[id].pagetable, (u64)tasks[id].program, TASK_ENTRY_POINT, program_pages*PAGE_SIZE, MMU_PTE_READ_WRITE_EXECUTE | MMU_PTE_USER);
 	mmu_map(tasks[id].pagetable, (u64)tasks[id].stack, 0x4000, 0x2000, MMU_PTE_READ_WRITE | MMU_PTE_USER);
 
-	mmu_map(tasks[id].pagetable, (u64)kernel_trap_user, (u64)kernel_trap_user, 0x2000, MMU_PTE_READ_EXECUTE);
+	mmu_map(tasks[id].pagetable, (u64)kernel_trap_vector, (u64)kernel_trap_vector, 0x2000, MMU_PTE_READ_EXECUTE);
 	mmu_map(tasks[id].pagetable, (u64)tasks[id].frame, (u64)tasks[id].frame, PAGE_SIZE, MMU_PTE_READ_WRITE);
 
 	//printf("%x = %x\n", mmu_v2p(tasks[id].pagetable, 0x1030), (u64)tasks[id].program);
@@ -129,7 +107,7 @@ void tasks_init(void) {
 }
 
 
-void load_task(void); // from kernel_trap_user.s
+void load_task(void); // from kernel_trap_vector.s
 
 
 static splk task_lock;

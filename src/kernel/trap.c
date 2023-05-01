@@ -82,6 +82,8 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 						case  13: putchar('\n'); break;
 						case 127: putchar('\b'); putchar(' '); putchar('\b'); break;
 
+						case 'q': *(u32*)0x100000UL = 0x5555; break; // shutdown
+
 						default: putchar(c); break;
 					}
 				}
