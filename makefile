@@ -2,7 +2,7 @@
 NAME    = kernel
 VERSION = alpha
 
-SRC_DIRS = src/kernel src/libc
+SRC_DIRS = src/kernel src/lib
 INC_DIRS = src/include
 
 TMP_DIR  = .tmp
