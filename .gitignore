@@ -3,9 +3,9 @@ ref
 testing
 tools
 
-bin/*
-.tmp/*
+.tmp
 
+bin/kernel
 qemu.log
 devices.txt
 
