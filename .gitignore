@@ -7,5 +7,6 @@ bin/*
 .tmp/*
 
 qemu.log
+devices.txt
 
 *.o

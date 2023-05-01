@@ -14,13 +14,9 @@ mtimer_vector:
 	sd a1, 80(sp)
 
 	// trigger supervisor timer interrupt
-	csrr a1, sie
+	csrr a1, sip
 	ori  a1, a1, (1 << 5)
-	csrw sie, a1
-
-	csrr a1, mip
-	ori  a1, a1, (1 << 5)
-	csrw mip, a1
+	csrw sip, a1
 	// ----
 
 	// set mtimecmp[hart_id] to -1
@@ -38,5 +34,5 @@ mtimer_vector:
 
 	addi sp, sp, 16
 
-	// return to whatever we were doing in the kernel
+	// return to whatever we were doing
 	mret

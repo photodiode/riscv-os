@@ -6,11 +6,11 @@
 #include <types.h>
 
 
-typedef volatile i32 mtx;
+typedef i32 splk;
 
 
-void mtx_lock(mtx* lock);
-void mtx_unlock(mtx* lock);
+void splk_lock(splk* lock);
+void splk_unlock(splk* lock);
 
 
 #endif // atomic_h

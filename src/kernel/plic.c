@@ -39,11 +39,15 @@ void plic_complete(const u32 hart_id, const u32 claim_id) {
 
 
 void plic_init(void) {
-	plic_set_priority(PLIC_UART0_ID, 1);
+	plic_set_priority(PLIC_UART0_IRQ, 1);
+	plic_set_priority(PLIC_PCIE_IRQ, 1);
 }
 
 
 void plic_hart_init(const u32 hart_id) {
-	plic_enable(hart_id, PLIC_UART0_ID);
+
+	plic_enable(hart_id, PLIC_UART0_IRQ);
+	plic_enable(hart_id, PLIC_PCIE_IRQ);
+
 	plic_set_threshold(hart_id, 0);
 }

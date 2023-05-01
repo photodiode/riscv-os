@@ -138,12 +138,12 @@ static void clear_pages(const void* const ptr, const u64 page_count) {
 // ---- public functions ----
 
 
-mtx memory_lock;
+static splk memory_lock;
 
 
 void* alloc(const u64 page_count) {
 
-	mtx_lock(&memory_lock);
+	splk_lock(&memory_lock);
 
 	const u64 page = find_range(page_count);
 	if (!page) return NULL;
@@ -153,7 +153,7 @@ void* alloc(const u64 page_count) {
 	map_range(page, page_count);
 	//clear_pages(ptr, page_count);
 
-	mtx_unlock(&memory_lock);
+	splk_unlock(&memory_lock);
 
 	return ptr;
 }
@@ -165,13 +165,13 @@ void _free(void** ptr) {
 
 	const u64 page = ((u64)*ptr - (u64)heap) / PAGE_SIZE; // address to page number
 
-	mtx_lock(&memory_lock);
+	splk_lock(&memory_lock);
 
 	const u64 page_count = unmap_range(page);
 	(void)page_count;
 	//clear_pages(*ptr, page_count);
 
-	mtx_unlock(&memory_lock);
+	splk_unlock(&memory_lock);
 
 	*ptr = NULL;
 }

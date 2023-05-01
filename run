@@ -2,7 +2,8 @@
 
 HARTS=4
 MEMORY=128M
-DEVICES="-device virtio-blk-pci,scsi=off,drive=main -device bochs-display,bus=pcie.0"
+STORAGE="-drive file=main.storage,if=none,id=main"
+DEVICES="-device nvme,serial=deadbeef,drive=main -device bochs-display,bus=pcie.0"
 
 KERNEL=kernel
 

@@ -131,13 +131,13 @@ void tasks_init(void) {
 void load_task(void); // from kernel_trap_user.s
 
 
-mtx task_lock;
+static splk task_lock;
 
 void task_start(void) {
 
 	u16 id = 0;
 
-	mtx_lock(&task_lock);
+	splk_lock(&task_lock);
 
 	while (tasks[id].state != TASK_WAITING) {
 		id = (id + 1) % task_first_free;
@@ -146,7 +146,7 @@ void task_start(void) {
 	tasks[id].state = TASK_RUNNING;
 	tasks[id].program[hello_app_size-4] = 0x30 + HART_ID; // change underscore for hart id
 
-	mtx_unlock(&task_lock);
+	splk_unlock(&task_lock);
 
 	csrw(sscratch, (u64)tasks[id].frame);
 

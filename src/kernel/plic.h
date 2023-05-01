@@ -8,7 +8,8 @@
 
 #define PLIC 0x0C000000UL
 
-#define PLIC_UART0_ID 10UL
+#define PLIC_UART0_IRQ 0x0A
+#define PLIC_PCIE_IRQ  0x20
 
 
 void plic_init(void);

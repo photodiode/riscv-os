@@ -28,7 +28,7 @@ void kernel_trap_user(void);
 void task_start(void);
 
 
-static mtx print_lock;
+static splk print_lock;
 
 
 void wait(void) {
@@ -37,7 +37,7 @@ void wait(void) {
 
 
 void panic(char *format, ...) {
-	mtx_lock(&print_lock);
+	splk_lock(&print_lock);
 
 	printf("Fatal: ");
 
@@ -65,15 +65,11 @@ void __attribute__((aligned(8))) kernel_trap(const trap_cause cause, const u64 v
 			case  3: printf("Machine software\n"); break;
 
 			case  4: printf("User timer\n"); break;*/
-			case  5: {
-				//mtx_lock(&print_lock);
-				//printf("#%d\n", HART_ID);
-				//mtx_unlock(&print_lock);
-
+			case  5: { // supervisor timer interrupt
 				csrw(sie, csrr(sie) & ~INT_STI);
 				//MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt at slow speed
 				//wait(); // pause everything for a little bit
-				MTIMECMP[HART_ID] = MTIME + 10000UL; // next interrupt at full speed
+				//MTIMECMP[HART_ID] = MTIME + 10000UL; // next interrupt at full speed
 
 				//task_start(); // we don't come back from here
 				break;
@@ -85,7 +81,7 @@ void __attribute__((aligned(8))) kernel_trap(const trap_cause cause, const u64 v
 
 				const u32 claim_id = plic_get_claim(HART_ID);
 
-				if (claim_id == PLIC_UART0_ID) {
+				if (claim_id == PLIC_UART0_IRQ) {
 					char c = uart_read();
 					switch (c) {
 						case  10: putchar('\n'); break;
@@ -126,9 +122,9 @@ void __attribute__((aligned(8))) kernel_trap(const trap_cause cause, const u64 v
 						mmu_pte* pagetable = (void*)(frame->pagetable_address);
 						char* str = (void*)mmu_v2p(pagetable, frame->a1);
 
-						mtx_lock(&print_lock);
+						splk_lock(&print_lock);
 						puts(str);
-						mtx_unlock(&print_lock);
+						splk_unlock(&print_lock);
 
 						break;
 					}
