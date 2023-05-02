@@ -48,9 +48,8 @@ kernel_trap_vector:
 	ld t0, 256(t5) // load frame.kernel_satp into t0
 	ld sp, 264(t5) // load frame.kernel_sp into sp
 
-	sd   tp, 280(t5) // store hart id into frame.hart_id
 	csrr t6, sepc    // store epc into frame.epc
-	sd   t6, 296(t5)
+	sd   t6, 288(t5)
 
 
 	csrw satp, t0
@@ -74,7 +73,7 @@ load_task:
 	csrw satp, t0
 	sfence.vma zero, zero
 
-	ld t0, 296(t6) // load epc from frame.epc
+	ld t0, 288(t6) // load epc from frame.epc
 	csrw sepc, t0
 
 	ld ra, 0(t6)

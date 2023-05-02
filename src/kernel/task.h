@@ -4,6 +4,9 @@
 
 #include <types.h>
 
+#include "atomic.h"
+#include "mmu.h"
+
 typedef enum __attribute__((__packed__)) {
 	TASK_NONE,
 	TASK_RUNNING,
@@ -14,22 +17,27 @@ typedef enum __attribute__((__packed__)) {
 
 typedef struct {
 	task_state state;
-	u16        parent;
-	u16        id;
 
-	u64        pad[2];
+	u16 parent;
+	u16 id;
 
+	splk lock;
+
+	u8 tired;
+
+	u64 pad[1];
+
+	mmu_pte* pagetable;
 	u64      pc;
 	u8*      program;
 	u8*      stack;
-	mmu_pte* pagetable;
 
 	trap_frame* frame;
 } task;
 
 
 void tasks_init(void);
-void task_start(void);
+void schedule_task(void);
 
 
 #endif // task_h

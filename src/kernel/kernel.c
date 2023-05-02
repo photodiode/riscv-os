@@ -8,6 +8,8 @@
 #include "memory.h"
 #include "mmu.h"
 
+#include "system.h"
+
 #include "pcie.h"
 
 #include "plic.h"
@@ -55,17 +57,6 @@ static volatile u16* fw_cfg_selector = (void*)(FW_CFG +  8);
 static volatile u64* fw_cfg_data     = (void*)(FW_CFG +  0);
 
 
-typedef struct {
-	u16 hart_count;
-	struct {
-		task* task;
-	} harts[];
-} system_info;
-
-
-system_info* system;
-
-
 void kernel(void) {
 
 	static volatile bool started = false;
@@ -85,10 +76,9 @@ void kernel(void) {
 
 		alloc_init(hart_count);
 
-		system = alloc(1);
-		system->hart_count = hart_count;
+		sys_init(hart_count);
 
-		pcie_init();
+		//pcie_init();
 
 		mmu_map_kernel();
 
@@ -118,11 +108,9 @@ void kernel(void) {
 	status.spie = 0; // turn off interrupts after trap / mode change to supervisor
 	csrw(sstatus, status.raw);*/
 
-	MTIMECMP[HART_ID] = MTIME + 1000000UL; // some delay
-
 	// enable interrupts
 	csrw(sie, csrr(sie) | INT_SEI | INT_SSI);
 	// ----
 
-	task_start();
+	schedule_task();
 }

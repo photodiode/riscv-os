@@ -12,6 +12,8 @@
 
 #include "atomic.h"
 
+#include "system.h"
+#include "task.h"
 #include "plic.h"
 
 
@@ -24,30 +26,13 @@ typedef struct {
 //extern volatile mmu_pte* kernel_pagetable;
 
 
-void kernel_trap_user(void);
-void task_start(void);
-
-
 static splk print_lock;
 
 
-void panic(char *format, ...) {
-	splk_lock(&print_lock);
-
-	printf("Fatal: ");
-
-	va_list arg;
-	va_start(arg, format);
-	printf(format, arg);
-	va_end(arg);
-
-	asm("wfi");
-}
+#define panic(...) { splk_lock(&print_lock); printf("\33[31;1mFatal:\33[0m "); printf(__VA_ARGS__); asm("wfi"); }
 
 
 void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 value, trap_frame* frame) {
-
-	(void)value;
 
 	if (cause.interrupt) { // interrupt
 		switch (cause.code) {
@@ -57,14 +42,9 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 
 			//case  4: printf("User timer\n"); break;*/
 			case  5: { // supervisor timer interrupt
-				csrw(sie, csrr(sie) & ~INT_STI);
+				csrw(sie, csrr(sie) & ~INT_STI); // reset timer interrupts
 
-				MTIMECMP[HART_ID] = MTIME + 10000000UL; // next interrupt at slow speed
-				//MTIMECMP[HART_ID] = MTIME + 10000UL; // next interrupt at full speed
-
-				splk_lock(&print_lock);
-				puts("timer\n");
-				splk_unlock(&print_lock);
+				schedule_task();
 
 				break;
 			}
@@ -111,7 +91,6 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 			case  7: panic("CPU %d: Store access fault\n", HART_ID); break;
 
 			case  8: { // Environment call from User mode
-				//printf("Environment call from User mode\n");
 				switch (frame->a0) {
 					case 4: {
 

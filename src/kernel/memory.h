@@ -47,10 +47,9 @@ typedef struct {
 	u64 kernel_sp;   // 264
 	u64 kernel_trap; // 272
 
-	u64 hart_id; // 280
-	u64 pagetable_address; //288
+	u64 pagetable_address; //280
 
-	u64 epc; //296
+	u64 epc; //288
 } trap_frame; // hart state
 
 
