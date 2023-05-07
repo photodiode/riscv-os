@@ -55,6 +55,10 @@ void __attribute__((aligned(4))) kernel_trap(const trap_cause cause, const u64 v
 
 				const u32 claim_id = plic_get_claim(HART_ID);
 
+				if (claim_id == PLIC_PCIE_IRQ) {
+					putchar('!');
+				}
+
 				if (claim_id == PLIC_UART0_IRQ) {
 					char c = uart_read();
 					switch (c) {
