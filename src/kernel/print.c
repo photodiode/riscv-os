@@ -18,8 +18,8 @@ void puts(const char *s) {
 
 char* itostr(unsigned long i, const int base) {
 
-	static char characters[]= "0123456789ABCDEF";
-	static char buffer[65];
+	static char characters[] = "0123456789ABCDEF";
+	static char buffer[65] = {0};
 	char *ptr = &buffer[sizeof(buffer) - 1];
 	*ptr = '\0';
 

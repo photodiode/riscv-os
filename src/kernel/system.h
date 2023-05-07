@@ -12,7 +12,7 @@ typedef struct {
 } sys_info_hart;
 
 typedef struct {
-	u16              hart_count;
+	u16           hart_count;
 	sys_info_hart harts[];
 } sys_info;
 

@@ -7,6 +7,5 @@ tools
 
 bin/kernel
 qemu.log
-devices.txt
 
 *.o
