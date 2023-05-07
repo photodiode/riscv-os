@@ -57,6 +57,21 @@ static volatile u16* fw_cfg_selector = (void*)(FW_CFG +  8);
 static volatile u64* fw_cfg_data     = (void*)(FW_CFG +  0);
 
 
+// all big endian :(
+extern struct fdt_header {
+	u32 magic;
+	u32 totalsize;
+	u32 off_dt_struct;
+	u32 off_dt_strings;
+	u32 off_mem_rsvmap;
+	u32 version;
+	u32 last_comp_version;
+	u32 boot_cpuid_phys;
+	u32 size_dt_strings;
+	u32 size_dt_struct;
+}* fdt;
+
+
 void kernel(void) {
 
 	static volatile bool started = false;
@@ -73,14 +88,17 @@ void kernel(void) {
 		// ----
 
 		printf("CPU: %d cores\n", hart_count);
+		printf("RAM: %d bytes\n", ram_size);
 
 		alloc_init(hart_count);
 
 		sys_init(hart_count);
 
-		//pcie_init();
-
 		mmu_map_kernel();
+
+		printf("DTB: %p\n", fdt);
+
+		//pcie_init();
 
 		plic_init();
 		plic_hart_init(HART_ID);

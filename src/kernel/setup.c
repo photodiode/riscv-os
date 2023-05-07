@@ -8,7 +8,16 @@ void mtimer_vector(void);
 void kernel_trap_vector(void);
 
 
-void setup(void) {
+void* fdt;
+
+
+void setup(u64 hart_id, u64 fdt_address) {
+
+	(void)hart_id;
+
+	if (HART_ID == 0) {
+		fdt = (void*)fdt_address;
+	}
 
 	// set basic PMP (physical memory protection)
 	csrw(pmpcfg0,  PMP_R | PMP_W | PMP_X | PMP_NAPOT);

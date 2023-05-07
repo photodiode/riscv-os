@@ -3,15 +3,17 @@
 .global _start
 
 _start:
-	# setup stacks per hart
+	csrr tp, mhartid # keep each cores hartid in its thread pointer register
+
+	# set up stacks per hart
 	la   sp, _k_stack_start # set the initial stack pointer to the end of the stack space
-	lw   a0, _k_stack_size  # stack size per hart
-	csrr a1, mhartid        # read current hart id
-	mv   tp, a1             # keep each cores hartid in its thread pointer register
-	addi a1, a1, 1          # add 1 to id
-	mul  a0, a0, a1         # multiply id with stack size to get offset for hart
-	add  sp, sp, a0	        # move the current hart stack pointer to its place in the stack space
-	mv   a0, sp
+	lw   a6, _k_stack_size  # stack size per hart
+	mv   a7, tp             # read current hart id
+	addi a7, a7, 1          # add 1 to id
+	mul  a6, a6, a7         # multiply id with stack size to get offset for hart
+	add  sp, sp, a6	        # move the current hart stack pointer to its place in the stack space
+	mv   a6, sp
 	# ----
 
-	call setup # setup.c
+	# a0 should be a hart id and a1 should be the device tree address
+	j setup
