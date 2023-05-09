@@ -31,24 +31,6 @@ typedef long  i64;
 #define I64_MIN (-I64_MAX-1)
 // ----
 
-// floating point
-/*//typedef ???    f8;
-typedef __fp16 f16;
-typedef float  f32;
-typedef double f64;
-
-#define F16_MIN 0x1.0p-14f
-#define F32_MIN 0x1.0p-126f
-#define F64_MIN 0x1.0p-1022
-
-#define F16_MAX 0x1.FFCp15f
-#define F32_MAX 0x1.FFFFFEp127f
-#define F64_MAX 0x1.FFFFFFFFFFFFFp1023
-
-#define INFINITY __builtin_inff()
-#define NAN      __builtin_nanf("")*/
-// ----
-
 // booleans
 typedef _Bool bool;
 #define true  1
@@ -60,8 +42,9 @@ typedef _Bool bool;
 // ----
 
 // extras
-//#define packed __attribute__((__packed__))
-//#define aligned(BYTES) __attribute__((aligned(BYTES)))
+//#define attr __attribute__
+//#define packed (__packed__)
+//#define align(BYTES) (aligned(BYTES))
 // ----
 
 #endif // types_h

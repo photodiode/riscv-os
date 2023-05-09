@@ -2,7 +2,7 @@
 .section .rodata
 _k_stack_size: .8byte 0x2000
 
-.macro create_stack
+.macro STACK_SETUP
 	la   sp, _k_stack_start # set the initial stack pointer to the end of the stack space
 	lw   t0, _k_stack_size  # stack size per hart
 	mv   t1, a0             # read current hart id
@@ -19,13 +19,13 @@ _k_stack_size: .8byte 0x2000
 # start here on only one hart
 # a0 should be a hart id and a1 should be the device tree address
 _start:
-	create_stack
-	j setup
+	STACK_SETUP
+	j kernel_setup
 # ----
 
 # each hart comes here
 # a0 should be a hart id and a1 should be ???
 _start_hart:
-	create_stack
-	j main
+	STACK_SETUP
+	j hart_setup
 # ----
