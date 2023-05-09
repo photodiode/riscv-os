@@ -7,12 +7,11 @@
 #define asm __asm__ volatile
 
 
-#define csrr(reg) ({u64 __x; asm("csrr %0, "#reg : "=r" (__x)); __x;})
+#define regr(reg) ({u64 __rv_tmp_x; asm("mv %0, "#reg : "=r" (__rv_tmp_x)); __rv_tmp_x;})
+#define regw(reg, x) asm("mv "#reg", %0" : : "r" (x))
+
+#define csrr(reg) ({u64 __rv_tmp_x; asm("csrr %0, "#reg : "=r" (__rv_tmp_x)); __rv_tmp_x;})
 #define csrw(reg, x) asm("csrw "#reg", %0" : : "r" (x))
-
-
-#define MTIME   *((volatile u64*)0x0200bff8)
-#define MTIMECMP ((volatile u64*)0x02004000)
 
 
 // Status Register
@@ -101,16 +100,5 @@ static inline void sfence_vma(void) {
 #define INT_MEI (1UL << 11) // machine external
 // ----
 
-
-
-// read and write tp, the thread pointer, which holds this core's hartid
-static inline u64 get_tp(void) {
-	u64 x;
-	asm("mv %0, tp" : "=r" (x));
-	return x;
-}
-
-#define HART_ID get_tp()
-// ----
 
 #endif // riscv_h
