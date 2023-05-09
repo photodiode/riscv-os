@@ -1,11 +1,14 @@
 
 #include <stdarg.h>
 
-#include "uart.h"
+#include <riscv.h>
+#include <sbi.h>
 
 
-int putchar(const char c) {
-	return uart_write(c);
+void putchar(const char c) {
+	sbi_console_putchar(c);
+
+	return;
 }
 
 
@@ -18,7 +21,7 @@ void puts(const char *s) {
 
 char* itostr(unsigned long i, const int base) {
 
-	static char characters[] = "0123456789ABCDEF";
+	static char characters[] = "0123456789abcdef";
 	static char buffer[65] = {0};
 	char *ptr = &buffer[sizeof(buffer) - 1];
 	*ptr = '\0';

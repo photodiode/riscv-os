@@ -9,14 +9,14 @@ TMP_DIR  = .tmp
 BIN_DIR  = bin
 
 # compiler
-CC   = clang --target=riscv64 -mno-relax
-LINK = ld.lld -m elf64lriscv -s --gc-sections -z max-page-size=4096
+CC   = clang --target=riscv64
+LINK = ld.lld -m elf64lriscv -s --gc-sections -z max-page-size=0x1000
 COPY = tools/riscv64-unknown-elf-objcopy
 
 LINKER_SCRIPT = src/virt.ld
 
 
-CFLAGS  = -std=c11 -O2
+CFLAGS  = -std=c11 -O0
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wunreachable-code -pedantic
 CFLAGS += -march=rv64gc -mabi=lp64 -mcmodel=medany
 
@@ -42,7 +42,7 @@ DEP_FILES := $(OBJ_FILES:.o=.d)
 all: $(TARGET)
 
 
-$(TARGET): $(OBJ_FILES) $(LINKER_SCRIPT) | $(TMP_DIR)/$(BIN_DIR)
+$(TARGET): $(OBJ_FILES) | $(TMP_DIR)/$(BIN_DIR)
 	@echo "link  $@"
 	@$(LINK) -T$(LINKER_SCRIPT) $^ -o $(TMP_DIR)/$@.elf
 	@$(COPY) $(TMP_DIR)/$@.elf -O binary $@

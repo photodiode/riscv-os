@@ -4,27 +4,23 @@ ENTRY(_start)
 
 SECTIONS {
 
-	. = 0x80000000;
+	. = 0x80200000;
 	PROVIDE(_memory_start = .);
 
-	.text : {
+	.text : ALIGN(8) {
 		PROVIDE(_text_start = .);
-		*(.text.init)
-		*(.text .text.*)
+		*(.text);
+		*(.text.*);
 		PROVIDE(_text_end = .);
 	}
 
-	. = ALIGN(0x1000);
-
-	.rodata : {
+	.rodata : ALIGN(8) {
 		PROVIDE(_rodata_start = .);
 		*(.rodata .rodata.*)
 		PROVIDE(_rodata_end = .);
 	}
 
-	. = ALIGN(0x1000);
-
-	.data : {
+	.data : ALIGN(0x1000) {
 		PROVIDE(_data_start = .);
 		*(.sdata .sdata.*)
 		*(.data .data.*)
@@ -32,7 +28,7 @@ SECTIONS {
 
 	}
 
-	.bss :{
+	.bss : ALIGN(8) {
 		PROVIDE(_bss_start = .);
 		*(.sbss .sbss.*)
 		*(.bss .bss.*)
@@ -40,10 +36,9 @@ SECTIONS {
 
 	}
 
-	. = ALIGN(0x1000);
-
-	PROVIDE(_k_stack_start = .);
-	PROVIDE(_k_stack_size  = 0x2000);
+	.k_stack : ALIGN(0x1000) {
+		PROVIDE(_k_stack_start = .);
+	}
 
 	PROVIDE(_memory_end = _memory_start + 256M);
 }

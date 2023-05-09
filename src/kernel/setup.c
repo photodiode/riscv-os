@@ -1,54 +1,33 @@
 
 #include <types.h>
 #include <riscv.h>
+#include <sbi.h>
+
+#include "print.h"
 
 
-void kernel(void);
-void mtimer_vector(void);
-void kernel_trap_vector(void);
+void _start_hart(u64 hart_id);
+void dt_parse(u64 dtb_address);
 
 
-void* fdt;
+void setup(u64 hart_id, u64 dtb_address) {
+
+	puts("\n\33[31;1m]\33[0m RISC-V OS \33[31;1m[\33[0m\n\n");
+
+	printf("Booting on hart %d\n", hart_id);
+
+	sbi_ret ret;
+	ret = sbi_get_spec_version();
+	printf("SBI: v%d.%d\n", ret.value >> 24, ret.value & 0xffffff);
 
 
-void setup(u64 hart_id, u64 fdt_address) {
+	dt_parse(dtb_address);
 
-	(void)hart_id;
 
-	if (HART_ID == 0) {
-		fdt = (void*)fdt_address;
-	}
+	ret = sbi_hart_start(1, (u64)_start_hart, 42);
 
-	// set basic PMP (physical memory protection)
-	csrw(pmpcfg0,  PMP_R | PMP_W | PMP_X | PMP_NAPOT);
-	csrw(pmpaddr0, U64_MAX >> 10); // entire 56 bit range
-	// ----
 
-	// turn off page based virtual memory system
-	csrw(satp, 0); // supervisor address translation & protection
-	sfence_vma();
-	// ----
+	printf("\n\33[90;1mQuit: Ctrl + A, then X\33[0m\n");
 
-	// send all interrupts and exceptions to supervisor mode
-	csrw(mideleg, 0xffff);
-	csrw(medeleg, 0xffff);
-	csrw(stvec, (u64)kernel_trap_vector);
-	// ----
-
-	// timer
-	MTIMECMP[HART_ID] = -1;
-	csrw(mie, csrr(mie) | INT_MTI);
-	csrw(mtvec, (u64)mtimer_vector);
-	// ----
-
-	rv_status status = {.raw = csrr(mstatus)};
-	status.mpp = 1; // set MPP (machine previous privilege) mode to supervisor for mret
-	status.mie = 1; // enable machine-mode interrupts
-	csrw(mstatus, status.raw);
-	// ----
-
-	// set MEPC (machine exception program counter) to kernel() and "return" into it
-	csrw(mepc, (u64)kernel);
-	asm("mret");
-	// ----
+	_start_hart(hart_id);
 }

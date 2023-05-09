@@ -58,7 +58,7 @@ static volatile u64* fw_cfg_data     = (void*)(FW_CFG +  0);
 
 
 // all big endian :(
-extern struct fdt_header {
+struct fdt_header {
 	u32 magic;
 	u32 totalsize;
 	u32 off_dt_struct;
@@ -72,15 +72,17 @@ extern struct fdt_header {
 }* fdt;
 
 
-void kernel(void) {
+void kernel(u64 hart_id, u64 fdt_address) {
 
 	static volatile bool started = false;
 
-	if (HART_ID == 0) {
+	if (hart_id == 0) {
 
-		uart_init();
+		//uart_init();
 
 		puts("\n\33[31;1m]\33[0m RISC-V OS \33[31;1m[\33[0m\n\n");
+
+		fdt = (void*)fdt_address;
 
 		// qemu fw_cfg
 		*fw_cfg_selector = FW_CFG_NB_CPUS;
@@ -88,7 +90,6 @@ void kernel(void) {
 		// ----
 
 		printf("CPU: %d cores\n", hart_count);
-		printf("RAM: %d bytes\n", ram_size);
 
 		alloc_init(hart_count);
 
@@ -101,7 +102,7 @@ void kernel(void) {
 		//pcie_init();
 
 		plic_init();
-		plic_hart_init(HART_ID);
+		plic_hart_init(hart_id);
 
 		tasks_init();
 

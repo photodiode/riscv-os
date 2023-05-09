@@ -8,6 +8,9 @@
 #include "atomic.h"
 
 
+const u64 _k_stack_size = 0x2000;
+
+
 static void* heap      = NULL;
 static u64   heap_size = 0;
 

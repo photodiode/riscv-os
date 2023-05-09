@@ -1,87 +1,112 @@
 
 .global kernel_trap_vector
+.global load_task
 
-.align 4
+.balign 0x1000
 kernel_trap_vector:
-	// make room to save registers
-	addi sp, sp, -256
 
-	// save the registers.
-	sd ra, 0(sp)
-	sd sp, 8(sp)
-	sd gp, 16(sp)
-	sd tp, 24(sp)
-	sd t0, 32(sp)
-	sd t1, 40(sp)
-	sd t2, 48(sp)
-	sd s0, 56(sp)
-	sd s1, 64(sp)
-	sd a0, 72(sp)
-	sd a1, 80(sp)
-	sd a2, 88(sp)
-	sd a3, 96(sp)
-	sd a4, 104(sp)
-	sd a5, 112(sp)
-	sd a6, 120(sp)
-	sd a7, 128(sp)
-	sd s2, 136(sp)
-	sd s3, 144(sp)
-	sd s4, 152(sp)
-	sd s5, 160(sp)
-	sd s6, 168(sp)
-	sd s7, 176(sp)
-	sd s8, 184(sp)
-	sd s9, 192(sp)
-	sd s10, 200(sp)
-	sd s11, 208(sp)
-	sd t3, 216(sp)
-	sd t4, 224(sp)
-	sd t5, 232(sp)
-	sd t6, 240(sp)
+	// save the registers
+	csrrw t6, sscratch, t6
+
+	sd ra, 0(t6)
+	sd sp, 8(t6)
+	sd gp, 16(t6)
+	sd tp, 24(t6)
+	sd t0, 32(t6)
+	sd t1, 40(t6)
+	sd t2, 48(t6)
+	sd s0, 56(t6)
+	sd s1, 64(t6)
+	sd a0, 72(t6)
+	sd a1, 80(t6)
+	sd a2, 88(t6)
+	sd a3, 96(t6)
+	sd a4, 104(t6)
+	sd a5, 112(t6)
+	sd a6, 120(t6)
+	sd a7, 128(t6)
+	sd s2, 136(t6)
+	sd s3, 144(t6)
+	sd s4, 152(t6)
+	sd s5, 160(t6)
+	sd s6, 168(t6)
+	sd s7, 176(t6)
+	sd s8, 184(t6)
+	sd s9, 192(t6)
+	sd s10, 200(t6)
+	sd s11, 208(t6)
+	sd t3, 216(t6)
+	sd t4, 224(t6)
+	sd t5, 232(t6)
+
+	mv    t5, t6
+	csrrw t6, sscratch, t6
+	sd    t6, 240(t5)
+	// ----
+
+
+	ld t0, 256(t5) // load frame.kernel_satp into t0
+	ld sp, 264(t5) // load frame.kernel_sp into sp
+
+	csrr t6, sepc    // store epc into frame.epc
+	sd   t6, 288(t5)
+
+
+	csrw satp, t0
+	sfence.vma zero, zero
+
 
 	csrr a0, scause
 	csrr a1, stval
-	csrr a2, sepc
-	mv   a3, sp // trap frame
+	csrr a2, sscratch // trap frame
 
 	// call the C trap handler in trap.c
 	call kernel_trap
 
-	csrw sepc, a0
 
-	// restore registers.
-	ld ra, 0(sp)
-	ld sp, 8(sp)
-	ld gp, 16(sp)
-// not this, in case we moved CPUs: ld tp, 24(sp)
-	ld t0, 32(sp)
-	ld t1, 40(sp)
-	ld t2, 48(sp)
-	ld s0, 56(sp)
-	ld s1, 64(sp)
-	ld a0, 72(sp)
-	ld a1, 80(sp)
-	ld a2, 88(sp)
-	ld a3, 96(sp)
-	ld a4, 104(sp)
-	ld a5, 112(sp)
-	ld a6, 120(sp)
-	ld a7, 128(sp)
-	ld s2, 136(sp)
-	ld s3, 144(sp)
-	ld s4, 152(sp)
-	ld s5, 160(sp)
-	ld s6, 168(sp)
-	ld s7, 176(sp)
-	ld s8, 184(sp)
-	ld s9, 192(sp)
-	ld s10, 200(sp)
-	ld s11, 208(sp)
-	ld t3, 216(sp)
-	ld t4, 224(sp)
-	ld t5, 232(sp)
-	ld t6, 240(sp)
+load_task:
 
-	addi sp, sp, 256
+	// restore registers
+	csrr t6, sscratch
+
+	ld t0, 248(t6) // load frame.satp
+	csrw satp, t0
+	sfence.vma zero, zero
+
+	ld t0, 288(t6) // load epc from frame.epc
+	csrw sepc, t0
+
+	ld ra, 0(t6)
+	ld sp, 8(t6)
+	ld gp, 16(t6)
+	//ld tp, 24(sp) // not this, in case we moved CPUs
+	ld t0, 32(t6)
+	ld t1, 40(t6)
+	ld t2, 48(t6)
+	ld s0, 56(t6)
+	ld s1, 64(t6)
+	ld a0, 72(t6)
+	ld a1, 80(t6)
+	ld a2, 88(t6)
+	ld a3, 96(t6)
+	ld a4, 104(t6)
+	ld a5, 112(t6)
+	ld a6, 120(t6)
+	ld a7, 128(t6)
+	ld s2, 136(t6)
+	ld s3, 144(t6)
+	ld s4, 152(t6)
+	ld s5, 160(t6)
+	ld s6, 168(t6)
+	ld s7, 176(t6)
+	ld s8, 184(t6)
+	ld s9, 192(t6)
+	ld s10, 200(t6)
+	ld s11, 208(t6)
+	ld t3, 216(t6)
+	ld t4, 224(t6)
+	ld t5, 232(t6)
+	ld t6, 240(t6)
+	// ----
 
 	sret
