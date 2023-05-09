@@ -15,16 +15,16 @@ typedef enum {
 } sbi_eid;
 
 
-static inline sbi_ret _sbi_ecall(u64 a0, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5, u64 fid, u64 eid) {
+static inline sbi_ret _sbi_ecall(register u64 a0, register u64 a1, register u64 a2, register u64 a3, register u64 a4, register u64 a5, register u64 fid, register u64 eid) {
 
 	(void)a0; (void)a1; (void)a2; (void)a3; (void)a4; (void)a5; (void)fid; (void)eid;
 
 	asm("ecall");
 
-	sbi_ret r;
-	asm("mv %0, a0" : "=r" (r.error));
-	asm("mv %0, a1" : "=r" (r.value));
-	return r;
+	return (sbi_ret) {
+		.error = regr(a0),
+		.value = regr(a1),
+	};
 }
 
 static inline sbi_ret sbi_ecall(u64 eid, u64 fid, u64 a0, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5) {
@@ -99,5 +99,12 @@ sbi_ret sbi_send_ipi(u64 hart_mask, u64 hart_mask_base) {
 // system reset extension
 sbi_ret sbi_system_reset(u32 type, u32 reason) {
 	return sbi_ecall(SBI_EID_RESET, 0, type, reason, 0, 0, 0, 0);
+}
+// ----
+
+
+// timer extension
+sbi_ret sbi_set_timer(u64 time) {
+	return sbi_ecall(SBI_EID_TIME, 0, time, 0, 0, 0, 0, 0);
 }
 // ----

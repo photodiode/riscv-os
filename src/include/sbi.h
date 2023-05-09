@@ -44,5 +44,7 @@ sbi_ret sbi_send_ipi(u64 hart_mask, u64 hart_mask_base);
 
 sbi_ret sbi_system_reset(u32 type, u32 reason);
 
+sbi_ret sbi_set_timer(u64 time);
+
 
 #endif // sbi_h
