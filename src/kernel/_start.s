@@ -1,5 +1,6 @@
 
 .section .rodata
+.global _k_stack_size
 _k_stack_size: .8byte 0x2000
 
 .macro STACK_SETUP

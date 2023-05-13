@@ -43,7 +43,7 @@ static u64 find_range(const u64 page_count) {
 		if (ci+1 >= page_map_len) break;
 
 		if (!measuring) {
-			const u64 a = page_map[1][ci]   >> offset;
+			const u64 a = page_map[1][ci] >> offset;
 			const u64 b = (!offset) ? 0 : page_map[1][ci+1] << (PAGE_MAP_CHUNK_WIDTH - offset);
 			const u64 chunk = a | b;
 
@@ -55,7 +55,7 @@ static u64 find_range(const u64 page_count) {
 				i += PAGE_MAP_CHUNK_WIDTH;
 			}
 		} else {
-			const u64 a = page_map[0][ci]   >> offset;
+			const u64 a = page_map[0][ci] >> offset;
 			const u64 b = (!offset) ? 0 : page_map[0][ci+1] << (PAGE_MAP_CHUNK_WIDTH - offset);
 			const u64 chunk = a | b;
 

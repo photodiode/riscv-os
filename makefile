@@ -11,7 +11,7 @@ BIN_DIR  = bin
 # compiler
 CC   = clang --target=riscv64
 LINK = ld.lld -m elf64lriscv -s --gc-sections -z max-page-size=0x1000
-COPY = tools/riscv64-unknown-elf-objcopy
+COPY = tools/bin/riscv64-unknown-elf-objcopy
 
 LINKER_SCRIPT = src/virt.ld
 
