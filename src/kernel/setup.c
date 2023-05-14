@@ -25,7 +25,10 @@ void kernel_setup(u64 hart_id, u64 dtb_address) {
 
 	sbi_ret ret;
 	ret = sbi_get_spec_version();
-	printf("SBI: v%d.%d\n", ret.value >> 24, ret.value & 0xffffff);
+	u64 sbi_ver = ret.value;
+	ret = sbi_get_impl_id();
+	u64 sbi_impl_id = ret.value;
+	printf("SBI:   v%d.%d (%s)\n", sbi_ver >> 24, sbi_ver & 0xffffff, sbi_impl_id_strings[sbi_impl_id]);
 
 	// device tree
 	dt_init(dtb_address);

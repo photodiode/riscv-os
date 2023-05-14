@@ -25,6 +25,18 @@ typedef struct {
 } sbi_ret;
 
 
+// SBI implementation IDs
+static const char* sbi_impl_id_strings[] = {
+	"Berkeley Boot Loader (BBL)",
+	"OpenSBI",
+	"Xvisor",
+	"KVM",
+	"RustSBI",
+	"Diosix",
+	"Coffer"
+};
+
+
 sbi_ret sbi_console_putchar(u8 byte);
 
 sbi_ret sbi_get_spec_version(void);
