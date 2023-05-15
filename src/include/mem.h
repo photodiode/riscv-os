@@ -4,7 +4,7 @@
 
 #include <types.h>
 
-void* memcpy(void* dest, const void* src, const u64 size);
-void* memset(void* str, const u8 c, const u64 size);
+void* memcpy(void* dest, void* src, u64 size);
+void* memset(void* str, u8 c, u64 size);
 
 #endif // mem_h

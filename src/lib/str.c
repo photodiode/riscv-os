@@ -17,7 +17,7 @@ u32 strhash(const char* str) {
 }
 
 
-u32 strnhash(u32 len, const char* str) {
+u32 strnhash(const u32 len, const char* str) {
 	if (!str || !len) return 0;
 	u32 hash = 5381; char c;
 	for (u32 i = 0; i < len; i++) {
