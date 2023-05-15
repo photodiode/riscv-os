@@ -18,7 +18,7 @@ LINKER_SCRIPT = src/virt.ld
 
 CFLAGS  = -std=c11 -O0
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wunreachable-code -pedantic
-CFLAGS += -march=rv64gc -mabi=lp64 -mcmodel=medany
+CFLAGS += -march=rv64g -mabi=lp64 -mcmodel=medany
 
 CFLAGS += -Wno-error=unused-command-line-argument -Wno-gnu-statement-expression
 
