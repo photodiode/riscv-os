@@ -6,32 +6,38 @@
 
 
 typedef struct {
-	u32 offset; // 4 byte (u32) offset into the dtb's tree struct
+	u32 error  :  1;
+	u32 offset : 31; // 4 byte (u32) offset into the dtb's tree struct
 
-	u8 address; // #address-cells (number of u32 cells)
-	u8 length;  // #size-cells (number of u32 cells)
+	u16 address_cells   : 4; // #address-cells (number of u32 cells)
+	u16 size_cells      : 4; // #size-cells (number of u32 cells)
+	u16 interrupt_cells : 4; // #interrupt-cells (number of u32 cells)
 
 	char* name; // pointer to the name string
 } dt_node;
 
-
 typedef struct {
-	u32 offset; // 4 byte (u32) offset into the dtb's tree struct
+	u32 error  :  1;
+	u32 offset : 31; // 4 byte (u32) offset into the dtb's tree struct
 
-	u32 data_len;
-	u8* data; // pointer to start of value data all in big endian
+	u16 address_cells   : 4; // #address-cells (number of u32 cells)
+	u16 size_cells      : 4; // #size-cells (number of u32 cells)
+	u16 interrupt_cells : 4; // #interrupt-cells (number of u32 cells)
+
+	u16 data_len;
+	u8* data;
 
 	char* name; // pointer to the name string
 } dt_prop;
 
 
-void dt_init(u64 dtb_address);
-void dt_print(void);
+dt_node dt_init(u64 dtb_address);
+//void dt_print(void);
 
-u32 dt_find_node(u32 i, const char* name, u32 hit_num);
-u32 dt_count_nodes(u32 i, const char* name);
+dt_node dt_get_node(dt_node parent, const char* name, u32 hit_num);
+u32     dt_count_nodes(dt_node parent, const char* name);
 
-u32 dt_get_prop(u32 node, const char* name);
+dt_prop dt_get_prop(dt_node parent, const char* name);
 
 bool dt_parse_node(u32 i, dt_node*);
 bool dt_parse_prop(u32 i, dt_prop*);

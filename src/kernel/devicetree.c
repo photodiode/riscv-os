@@ -4,10 +4,11 @@
 #include <str.h>
 
 #include "devicetree.h"
-#include "print.h"
 
 
-#define CEIL_DIV(A, B) ((A > 0) ? (1 + ((A - 1) / B)) : 0)
+static inline u64 ceil_div(u64 a, u64 b) {
+	return ((a > 0) ? (1 + ((a - 1) / b)) : 0);
+}
 
 
 typedef enum {
@@ -26,6 +27,9 @@ typedef enum {
 #define INTERRUPT_CELLS 0x39471b15 // number of u32 cells for interrupt specifier
 #define GPIO_CELLS      0x7579e6b7 // number of u32 cells for ???
 
+#define DT_NODE_ERROR (dt_node){.error = 1}
+#define DT_PROP_ERROR (dt_prop){.error = 1}
+
 
 static u32 dtb_len = 0;
 static u8* dtb     = NULL;
@@ -37,18 +41,45 @@ static u32  dtb_struct_len  = 0;
 static u32* dtb_struct      = NULL;
 
 
-void dt_init(u64 dtb_address) {
+static u32 next_token(u32 i, u32* type) {
+
+	if (i < dtb_struct_len) {
+		*type = swap_u32(dtb_struct[i]);
+		switch (*type) {
+			case DT_NODE: {
+				u64 len = strlen((char*)&dtb_struct[i+1]) + 1;
+				return i + 1 + ceil_div(len, 4);
+			}
+			case DT_NODE_END: {
+				return i + 1;
+			}
+			case DT_PROPERTY: {
+				u32 len = swap_u32(dtb_struct[i+1]);
+				return i + 3 + ceil_div(len, 4);
+			}
+			case DT_NOP: {
+				return i + 1;
+			}
+			default: break;
+		}
+	}
+
+	return 0;
+}
+
+
+dt_node dt_init(u64 dtb_address) {
 
 	dtb = (void*)dtb_address;
 
 	u32* header = (void*)dtb;
 
 	if (swap_u32(header[0]) != 0xd00dfeed) {
-		fatal("Device Tree corrupted or missing\n");
+		return DT_NODE_ERROR;
 	}
 
 	if (swap_u32(header[5]) != 17) {
-		fatal("Unsupported Device Tree version\n");
+		return DT_NODE_ERROR;
 	}
 
 	dtb_len = swap_u32(header[1]);
@@ -77,40 +108,74 @@ void dt_init(u64 dtb_address) {
 	}*/
 	// ----
 
+	dt_node root = (dt_node){0};
+
+	dt_prop address_cells = dt_get_prop(root, "#address-cells");
+	dt_prop size_cells    = dt_get_prop(root, "#size-cells");
+
+	root.address_cells = (address_cells.error) ? 2 : swap_u32(dtb_struct[address_cells.offset+3]);
+	root.size_cells    = (size_cells.error)    ? 1 : swap_u32(dtb_struct[size_cells.offset+3]);
+
+	return root;
 }
 
 
-static u32 next_token(u32 i, u32* type) {
+dt_prop dt_get_prop(dt_node parent, const char* name) {
 
-	if (i < dtb_struct_len) {
-		*type = swap_u32(dtb_struct[i]);
-		switch (*type) {
+	if (parent.error) return DT_PROP_ERROR;
+	if (!name) return DT_PROP_ERROR;
+
+	u32 i = parent.offset;
+	u32 type = 0;
+	u32 next;
+
+	i8 indent = 0;
+
+	u32 hash = strhash(name);
+
+	while ((next = next_token(i, &type))) {
+		switch (type) {
 			case DT_NODE: {
-				u64 len = strlen((char*)&dtb_struct[i+1]) + 1;
-				return i + 1 + CEIL_DIV(len, 4);
+				indent += 1;
+				break;
 			}
 			case DT_NODE_END: {
-				return i + 1;
+				indent -= 1;
+				if (indent == 0) return DT_PROP_ERROR;
+				break;
 			}
 			case DT_PROPERTY: {
-				u32 len = swap_u32(dtb_struct[i+1]);
-				return i + 3 + CEIL_DIV(len, 4);
-			}
-			case DT_NOP: {
-				return i + 1;
+				u32 offset = swap_u32(dtb_struct[i+2]);
+				char* prop_name = (char*)&dtb_strings[offset];
+
+				if (hash == strhash(prop_name) && indent == 1) {
+					return (dt_prop){
+						.offset = i,
+						.name   = prop_name,
+
+						.address_cells = parent.address_cells,
+						.size_cells    = parent.size_cells,
+
+						.data_len = swap_u32(dtb_struct[i+1]),
+						.data     = (u8*)&dtb_struct[i+3]
+					};
+				}
 			}
 			default: break;
 		}
+		i = next;
 	}
 
-	return 0;
+	return DT_PROP_ERROR;
 }
 
 
-u32 dt_find_node(u32 i, const char* name, u32 hit_num) {
+dt_node dt_get_node(dt_node parent, const char* name, u32 hit_num) {
 
-	if (!name) return 0;
+	if (parent.error) return DT_NODE_ERROR;
+	if (!name) return DT_NODE_ERROR;
 
+	u32 i = parent.offset;
 	u32 type = 0;
 	u32 next = 0;
 
@@ -134,7 +199,18 @@ u32 dt_find_node(u32 i, const char* name, u32 hit_num) {
 
 				if (hash == node_hash && indent == 1) {
 					if (hit == hit_num) {
-						return i;
+						dt_node node = (dt_node){
+							.offset = i,
+							.name   = node_name
+						};
+
+						dt_prop address_cells = dt_get_prop(node, "#address-cells");
+						dt_prop size_cells    = dt_get_prop(node, "#size-cells");
+
+						node.address_cells = (address_cells.error) ? parent.address_cells : swap_u32(dtb_struct[address_cells.offset+3]);
+						node.size_cells    = (size_cells.error)    ? parent.size_cells    : swap_u32(dtb_struct[size_cells.offset+3]);
+
+						return node;
 					}
 					hit += 1;
 				}
@@ -144,7 +220,7 @@ u32 dt_find_node(u32 i, const char* name, u32 hit_num) {
 			}
 			case DT_NODE_END: {
 				indent -= 1;
-				if (indent < 0) return 0;
+				if (indent < 0) return DT_NODE_ERROR;
 				break;
 			}
 			default: break;
@@ -152,13 +228,15 @@ u32 dt_find_node(u32 i, const char* name, u32 hit_num) {
 		i = next;
 	}
 
-	return 0;
+	return DT_NODE_ERROR;
 }
 
-u32 dt_count_nodes(u32 i, const char* name) {
+u32 dt_count_nodes(dt_node parent, const char* name) {
 
+	if (parent.error) return 0;
 	if (!name) return 0;
 
+	u32 i = parent.offset;
 	u32 type = 0;
 	u32 next = 0;
 
@@ -200,83 +278,8 @@ u32 dt_count_nodes(u32 i, const char* name) {
 	return count;
 }
 
-u32 dt_get_prop(u32 i, const char* name) {
 
-	u32 type = 0;
-	u32 next;
-
-	i8 indent = 0;
-
-	u32 hash = strhash(name);
-
-	while ((next = next_token(i, &type))) {
-		switch (type) {
-			case DT_NODE: {
-				indent += 1;
-				break;
-			}
-			case DT_NODE_END: {
-				indent -= 1;
-				if (indent == 0) return 0;
-				break;
-			}
-			case DT_PROPERTY: {
-				u32 offset = swap_u32(dtb_struct[i+2]);
-				char* prop_name = (char*)&dtb_strings[offset];
-
-				if (hash == strhash(prop_name) && indent == 1) {
-					return i;
-				}
-			}
-			default: break;
-		}
-		i = next;
-	}
-
-	return 0;
-}
-
-
-bool dt_parse_prop(u32 i, dt_prop* prop) {
-	if (!i) return false;
-	if (swap_u32(dtb_struct[i]) != DT_PROPERTY) return false;
-
-	u32 str_offset = swap_u32(dtb_struct[i+2]);
-
-	prop->offset = i;
-	prop->name   = (char*)&dtb_strings[str_offset];
-
-	prop->data_len = swap_u32(dtb_struct[i+1]);
-	prop->data     = (u8*)&dtb_struct[i+3];
-
-	return true;
-}
-
-
-bool dt_parse_node(u32 i, dt_node* node) {
-	if (swap_u32(dtb_struct[i]) != DT_NODE) return false;
-
-	node->offset = i;
-	node->name   = (char*)&dtb_struct[i+1];
-
-	node->address = 2;
-	node->length  = 1;
-
-	dt_prop prop;
-
-	if (dt_parse_prop(dt_get_prop(i, "#address-cells"), &prop)) {
-		node->address = swap_u32(*(u32*)prop.data);
-	}
-
-	if (dt_parse_prop(dt_get_prop(i, "#size-cells"), &prop)) {
-		node->length = swap_u32(*(u32*)prop.data);
-	}
-
-	return true;
-}
-
-
-void dt_print(void) {
+/*void dt_print(void) {
 
 	if (!dtb) fatal("Device Tree not initialized\n");
 
@@ -313,4 +316,4 @@ void dt_print(void) {
 		}
 		i = next;
 	}
-}
+}*/
