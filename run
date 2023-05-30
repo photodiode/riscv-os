@@ -1,7 +1,7 @@
 #!/bin/bash
 
 HARTS=4
-MEMORY=256M
+MEMORY=250.1M
 STORAGE="-drive file=main.storage,if=none,id=main"
 DEVICES="-device nvme,serial=deadbeef,drive=main -device bochs-display,bus=pcie.0"
 

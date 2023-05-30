@@ -12,6 +12,11 @@ typedef unsigned long  u64;
 #define U16_MAX (0xFFFF)
 #define U32_MAX (0xFFFFFFFFU)
 #define U64_MAX (0xFFFFFFFFFFFFFFFFUL)
+
+#define U8_BITS   8
+#define U16_BITS 16
+#define U32_BITS 32
+#define U64_BITS 64
 // ----
 
 // signed integers
@@ -29,6 +34,11 @@ typedef long  i64;
 #define I16_MIN (-I16_MAX-1)
 #define I32_MIN (-I32_MAX-1)
 #define I64_MIN (-I64_MAX-1)
+
+#define I8_BITS   8
+#define I16_BITS 16
+#define I32_BITS 32
+#define I64_BITS 64
 // ----
 
 // booleans

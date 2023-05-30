@@ -3,11 +3,10 @@
 #define memory_h
 
 #include <types.h>
+#include <devicetree.h>
 
 
-#define PAGE_SIZE_0     0x1000
-#define PAGE_SIZE_1   0x200000
-#define PAGE_SIZE_2 0x40000000
+#define PAGE_SIZE 0x1000
 
 
 // memory constants
@@ -60,9 +59,9 @@ typedef struct {
 
 
 // kernel page allocator
-void  alloc_init(u64 hart_count, const u64 memory_end);
+void  alloc_init(void);
 
-void* alloc(u64 page_count); // allocate 4KiB page
+void* alloc(void); // allocate 4KiB page
 void  _free(void** ptr);
 #define free(ptr) _free((void**)&ptr) // this lets us set the pointer to NULL
 // ----

@@ -7,10 +7,10 @@
 #define asm __asm__ volatile
 
 
-#define regr(reg) ({u64 __rv_tmp_x; asm("mv %0, "#reg : "=r" (__rv_tmp_x)); __rv_tmp_x;})
+#define regr(reg) ({u64 _rv_tmp_x; asm("mv %0, "#reg : "=r" (_rv_tmp_x)); _rv_tmp_x;})
 #define regw(reg, x) asm("mv "#reg", %0" : : "r" (x))
 
-#define csrr(reg) ({u64 __rv_tmp_x; asm("csrr %0, "#reg : "=r" (__rv_tmp_x)); __rv_tmp_x;})
+#define csrr(reg) ({u64 _rv_tmp_x; asm("csrr %0, "#reg : "=r" (_rv_tmp_x)); _rv_tmp_x;})
 #define csrw(reg, x) asm("csrw "#reg", %0" : : "r" (x))
 
 

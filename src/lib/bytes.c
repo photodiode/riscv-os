@@ -31,7 +31,7 @@ u64 swap_u64(const u64 v) {
 	);
 }
 
-u64 trailing_u64(const u64 i) {
+u64 trailing_zeroes_u64(const u64 i) {
 	static const u8 tab64[64] = {
 		 0,  1,  2, 53,  3,  7, 54, 27,  4, 38, 41,  8, 34, 55, 48, 28,
 		62,  5, 39, 46, 44, 42, 22,  9, 24, 35, 59, 56, 49, 18, 29, 11,

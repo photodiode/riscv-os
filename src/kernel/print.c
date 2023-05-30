@@ -5,6 +5,22 @@
 #include <sbi.h>
 
 
+static char* itostr(unsigned long i, const int base) {
+
+	static const char characters[] = "0123456789abcdef";
+	static char buffer[65] = {0};
+	char *ptr = &buffer[sizeof(buffer) - 1];
+	*ptr = '\0';
+
+	do {
+		*--ptr = characters[i % base];
+		i /= base;
+	} while(i != 0);
+
+	return ptr;
+}
+
+
 void putchar(const char c) {
 	sbi_console_putchar(c);
 
@@ -16,22 +32,6 @@ void puts(const char *s) {
 	while (*s != '\0') {
 		putchar(*s++);
 	}
-}
-
-
-char* itostr(unsigned long i, const int base) {
-
-	static char characters[] = "0123456789abcdef";
-	static char buffer[65] = {0};
-	char *ptr = &buffer[sizeof(buffer) - 1];
-	*ptr = '\0';
-
-	do {
-		*--ptr = characters[i % base];
-		i /= base;
-	} while(i != 0);
-
-	return ptr;
 }
 
 

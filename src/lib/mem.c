@@ -10,9 +10,9 @@ void* memcpy(void* dest, const void* src, const u64 size) {
 }
 
 
-void* memset(void* str, const u8 c, const u64 size) {
+void* memset(void* ptr, const u8 c, const u64 size) {
 	for (u64 i = 0; i < size; i++) {
-		((u8*)str)[i] = c;
+		((u8*)ptr)[i] = c;
 	}
-	return str;
+	return ptr;
 }

@@ -3,7 +3,7 @@
 #include <bytes.h>
 #include <str.h>
 
-#include "devicetree.h"
+#include <devicetree.h>
 
 
 static inline u64 ceil_div(u64 a, u64 b) {
@@ -31,7 +31,6 @@ typedef enum {
 #define DT_PROP_ERROR (dt_prop){.error = 1}
 
 
-static u32 dtb_len = 0;
 static u8* dtb     = NULL;
 
 static u32  dtb_strings_len = 0;
@@ -68,7 +67,7 @@ static u32 next_token(u32 i, u32* type) {
 }
 
 
-dt_node dt_init(u64 dtb_address) {
+dt_node dt_init(u64 dtb_address, u64* dtb_len) {
 
 	dtb = (void*)dtb_address;
 
@@ -82,7 +81,9 @@ dt_node dt_init(u64 dtb_address) {
 		return DT_NODE_ERROR;
 	}
 
-	dtb_len = swap_u32(header[1]);
+	if (dtb_len) {
+		*dtb_len = swap_u32(header[1]);
+	}
 
 	dtb_strings_len = swap_u32(header[8]);
 	dtb_strings     = &dtb[swap_u32(header[3])];
@@ -152,9 +153,6 @@ dt_prop dt_get_prop(dt_node parent, const char* name) {
 					return (dt_prop){
 						.offset = i,
 						.name   = prop_name,
-
-						.address_cells = parent.address_cells,
-						.size_cells    = parent.size_cells,
 
 						.data_len = swap_u32(dtb_struct[i+1]),
 						.data     = (u8*)&dtb_struct[i+3]

@@ -1,17 +1,30 @@
 
 #include <types.h>
+#include <atomic.h>
+#include <bytes.h>
+#include <mem.h>
 
-#include "atomic.h"
-
-#include "memory.h"
 #include "system.h"
+#include "memory.h"
 
 #include "print.h"
 
 
-static u64* pmap[3]       = {NULL};
-static u64  pmap_len[3]   = {0}; // number of elements in pmap
-static u64  pmap_pages[3] = {0}; // number of pages, or bits in pmap
+#define PAGE_MAP_CHUNK_WIDTH U64_BITS
+
+
+static struct {
+
+	u8  level_count;
+	u32 size;
+
+	struct {
+		u8   overflow;
+		u32  chunk_count;
+		u64* chunks;
+	} levels[];
+
+}* map = NULL;
 
 
 static inline u64 ceil_div(u64 a, u64 b) {
@@ -19,43 +32,136 @@ static inline u64 ceil_div(u64 a, u64 b) {
 }
 
 
-void alloc_init(const u64 hart_count, const u64 memory_end) {
+void* alloc(void) {
 
-	// set up heap
-	const u64 k_stack_end = K_STACK_START + (K_STACK_SIZE * hart_count);
+	// search for first free page by going down the map levels
+	u64 offset = 0;
 
-	system.heap      = (void*)k_stack_end;
-	system.heap_size = memory_end - k_stack_end;
+	u64 chunk;
+	u8  chunk_overflow;
+
+	u8  level  = map->level_count;
+	while (level > 0) {
+		level--;
+
+		chunk_overflow = trailing_zeroes_u64(~map->levels[level].chunks[offset]);
+
+		// if we're in the overflow chunk check that we're also within it's range
+		if (map->levels[level].chunk_count == offset &&
+		    map->levels[level].overflow &&
+		    map->levels[level].overflow < chunk_overflow) {
+			return NULL;
+		}
+
+		chunk = offset;
+		offset = (offset * PAGE_MAP_CHUNK_WIDTH) + chunk_overflow;
+	}
 	// ----
 
-	// set up allocation page map
-	pmap_pages[0] = system.heap_size / PAGE_SIZE_0;
-	pmap_pages[1] = system.heap_size / PAGE_SIZE_1;
-	pmap_pages[2] = system.heap_size / PAGE_SIZE_2;
+	//printf("%d\n", offset);
+	//printf("[%b]\n", map->levels[0].chunks[0]);
+	//printf("[%b]\n", map->levels[0].chunks[1]);
+	//printf("[%b]\n", map->levels[1].chunks[0]);
 
-	pmap_len[0] = ceil_div(pmap_pages[0], (sizeof **pmap * 8));
-	pmap_len[1] = ceil_div(pmap_pages[1], (sizeof **pmap * 8));
-	pmap_len[2] = ceil_div(pmap_pages[2], (sizeof **pmap * 8));
+	// set page bit in all levels upward
+	for (u8 i = 0; i < map->level_count; i++) {
 
-	pmap[0] = system.heap;
-	pmap[1] = &pmap[0][pmap_len[0]];
-	pmap[2] = &pmap[1][pmap_len[1]];
+		map->levels[i].chunks[chunk] |= 1UL << chunk_overflow;
+
+		if (map->levels[i].chunks[chunk] != U64_MAX) {
+			break;
+		}
+
+		chunk_overflow = chunk % PAGE_MAP_CHUNK_WIDTH;
+		chunk /= PAGE_MAP_CHUNK_WIDTH;
+	}
 	// ----
 
-	// manually clear and "allocate" pages for the page map itself
-	const u64 pages = ceil_div((pmap_len[0] + pmap_len[1] + pmap_len[2]) * (sizeof **pmap), PAGE_SIZE_0);
+	return system.memory + (offset * PAGE_SIZE);
+}
 
-	//clear_pages(&page_map[0], pages);
-	//map_range(0, page_map_pages);
+
+void _free(void** ptr) {
+
+	if (*ptr == NULL) return;
+
+	u64 offset = ((u64)*ptr - (u64)system.memory) / PAGE_SIZE;
+
+	u64 chunk          = offset / PAGE_MAP_CHUNK_WIDTH;
+	u8  chunk_overflow = offset % PAGE_MAP_CHUNK_WIDTH;
+
+	//printf("[%b]\n", map->levels[0].chunks[8]);
+
+	// clear page bit in all levels upward
+	for (u8 i = 0; i < map->level_count; i++) {
+
+		const u64 tmp = map->levels[i].chunks[chunk];
+
+		map->levels[i].chunks[chunk] &= ~(1UL << chunk_overflow);
+
+		if (tmp == U64_MAX) {
+			break;
+		}
+
+		chunk_overflow = chunk % PAGE_MAP_CHUNK_WIDTH;
+		chunk /= PAGE_MAP_CHUNK_WIDTH;
+	}
 	// ----
 
-	printf("stack: 0x%x (%d bytes)\n", K_STACK_START, k_stack_end - K_STACK_START);
-	printf("heap:  %p (%d bytes)\n", system.heap, system.heap_size);
+	//printf("[%b]\n", map->levels[0].chunks[8]);
 
-	printf("pmap 0: u64 x %d (%d)\n", pmap_len[0], pmap_pages[0]);
-	printf("pmap 1: u64 x %d (%d)\n", pmap_len[1], pmap_pages[1]);
-	printf("pmap 2: u64 x %d (%d)\n", pmap_len[2], pmap_pages[2]);
-	printf("pmap pages needed: %d\n", pages);
+	*ptr = NULL;
+}
 
-	//printf("pmap:  %d page%c\n", page_map_pages, (page_map_pages != 1) ? 's' : '\0');
+
+void alloc_init(void) {
+
+	const u64 kernel_end = K_STACK_START + (K_STACK_SIZE * system.hart_count);
+
+	// set up page map levels
+	map = (void*)kernel_end;
+	map->level_count = 0;
+
+	u64 page_count  = system.memory_size / PAGE_SIZE;
+	u64 chunk_count = page_count;
+
+	do {
+		map->levels[map->level_count].overflow = chunk_count % PAGE_MAP_CHUNK_WIDTH;
+
+		chunk_count = chunk_count / PAGE_MAP_CHUNK_WIDTH;
+
+		map->levels[map->level_count].chunk_count = chunk_count;
+
+		if (map->levels[map->level_count].overflow) {
+			chunk_count += 1;
+		}
+
+		map->level_count += 1;
+
+	} while (chunk_count > 1);
+	// ----
+
+	map->size = sizeof(*map) + (sizeof(*map->levels) * map->level_count);
+
+	// set pointer for each level's chunk array
+	for (u8 i = 0; i < map->level_count; i++) {
+
+		map->levels[i].chunks = (void*)((u8*)map + map->size);
+
+		u64 size = (map->levels[i].chunk_count * sizeof(u64)) + ((map->levels[i].overflow > 0) ? sizeof(u64) : 0);
+		map->size += size;
+
+		memset(map->levels[i].chunks, 0, size);
+
+		//printf("level %d: [%d + %d] %p\n", i, map->levels[i].chunk_count, map->levels[i].overflow, map->levels[i].chunks);
+	}
+	// ----
+
+	// clean the page map and "allocate" pages for the kernel and page map
+	u64 pages = ceil_div((kernel_end + map->size) - (u64)system.memory, PAGE_SIZE);
+
+	for (u64 i = 0; i < pages; i++) {
+		alloc();
+	}
+	// ----
 }

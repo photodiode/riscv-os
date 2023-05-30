@@ -5,7 +5,6 @@ ENTRY(_start)
 SECTIONS {
 
 	. = 0x80200000;
-	PROVIDE(_memory_start = .);
 
 	/* program code */
 	.text : {
