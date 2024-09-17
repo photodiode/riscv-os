@@ -25,6 +25,7 @@ typedef struct {
 typedef struct {
 	u64 memory_size;
 	u8* memory;
+
 	u64 kernel_end;
 
 	u64 timebase;
@@ -37,7 +38,7 @@ typedef struct {
 extern sys_info system;
 
 
-void system_init(dt_node root);
+void system_init(u64 dtb_address);
 
 
 #endif // system_h

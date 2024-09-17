@@ -3,6 +3,7 @@
 #include <bytes.h>
 #include <devicetree.h>
 
+#include "memory.h"
 #include "system.h"
 #include "print.h"
 
@@ -10,8 +11,15 @@
 sys_info system = {0};
 
 
-void system_init(dt_node dt_root) {
+void system_init(u64 dtb_address) {
 
+	// initialize device tree parser
+	u64 dtb_size;
+	dt_node dt_root = dt_init(dtb_address, &dtb_size);
+	if (dt_root.error || !dtb_size) fatal("Device Tree is corrupted, missing or an unsupported version\n");
+	// ----
+
+	// memory info
 	dt_prop mem_reg = dt_get_prop(dt_get_node(dt_root, "memory@", 0), "reg");
 	if (mem_reg.error) fatal("Couldn't find memory information in Device Tree\n");
 
@@ -20,8 +28,9 @@ void system_init(dt_node dt_root) {
 
 	system.memory_size = memory_size;
 	system.memory      = (u8*)memory;
+	// ----
 
-
+	// hart info
 	dt_node cpus = dt_get_node(dt_root, "cpus", 0);
 
 	system.hart_count = dt_count_nodes(cpus, "cpu@");
@@ -49,5 +58,7 @@ void system_init(dt_node dt_root) {
 		printf("   %s\n", mmu.data);
 		printf("   %s\n", interrupt.data);
 	}
+	// ----
 
+	system.kernel_end = K_STACK_START + (K_STACK_SIZE * system.hart_count);
 }

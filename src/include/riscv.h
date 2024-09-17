@@ -101,4 +101,9 @@ static inline void sfence_vma(void) {
 // ----
 
 
+static inline void wfi(void) {
+	asm("wfi");
+}
+
+
 #endif // riscv_h
