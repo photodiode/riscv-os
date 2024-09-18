@@ -84,7 +84,8 @@ void hart_setup(u64 hart_id) {
 
 	splk_unlock(&lock);
 
-	sbi_set_timer(system.timebase * 1);
+	u64 time = csrr(time);
+	sbi_set_timer(time + (system.timebase * 1));
 
 	while (1);
 }
