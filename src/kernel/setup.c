@@ -68,13 +68,6 @@ void hart_setup(u64 hart_id) {
 
 	csrw(stvec, (u64)trap_vector); // set trap vector
 
-	// turn on interrupts
-	rv_status status = {.raw = csrr(sstatus)};
-	status.sie = 1;
-	csrw(sstatus, status.raw);
-	csrw(sie, csrr(sie) | INT_SSI | INT_STI | INT_SEI);
-	// ----
-
 	//schedule_task();
 
 	static splk lock;
@@ -83,6 +76,8 @@ void hart_setup(u64 hart_id) {
 	printf("Hello, I'm hart %d\n", hart_id);
 
 	splk_unlock(&lock);
+
+	csrw(sie, csrr(sie) | INT_SSI | INT_STI | INT_SEI); // turn on interrupts
 
 	u64 time = csrr(time);
 	sbi_set_timer(time + (system.timebase * 1));
